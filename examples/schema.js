@@ -6,22 +6,45 @@ var Author = db.type('Author', {
   email: String
 });
 
-// var Comments = new Schema('Comments', {
-//   title: String,
-//   date: Date,
-//   comments: ['Comments']
-// });
+var Comment = db.type('Comment', {
+  body: String,
+  date: Date,
+  comments: ['Comment']
+});
 
-// var Example = new S.Schema('Example', {
-//   author: Author,
-//   date: Date,
-//   title: String,
-//   body: String,
-//   comments: [Comments],
-//   meta: {
-//     votes: Number,
-//     favs: Number
-//   }
-// });
+var Post = db.type('Post', {
+  author: Author,
+  date: Date,
+  title: String,
+  body: String,
+  comments: [Comment],
+  meta: {
+    votes: Number,
+    favs: Number
+  }
+});
 
-console.log('Author:', db.load(Author, { name: 'Foo', email: 'foo@example.net' }));
+var author, comment;
+
+console.log('Author:', author = Author.load({
+  name: 'Foo',
+  email: 'foo@example.net'
+}));
+
+console.log('Comment:', comment = Comment.load({
+  body: 'First post!',
+  date: '11/21/07',
+  comments: []
+}));
+
+console.log('Post:', Post.load({
+  author: author,
+  date: '11/20/07',
+  title: 'Some Words',
+  body: 'lorem ipsum',
+  comments: [comment],
+  meta: {
+    votes: 0,
+    favs: 0
+  }
+}));
