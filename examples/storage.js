@@ -1,6 +1,6 @@
-var Storage = require('../lib/storage'),
-    db = new Storage.Storage('/tmp'),
-    type = Storage.type;
+var Toji = require('../lib/'),
+    db = new Toji.Storage('/tmp'),
+    type = Toji.type;
 
 var Person = type('Person', {
   name: String,
@@ -25,13 +25,8 @@ function start(err) {
   ]);
 }
 
-function created(err, obj, key) {
+function created(err) {
   if (err) throw err;
-  console.log('created', key, obj);
-  list();
-}
-
-function list() {
   db.find(Person).next(showAll);
 }
 
