@@ -1,18 +1,18 @@
-var DB = require('../lib/database').DB,
-    db = new DB();
+var Storage = require('../lib/storage'),
+    type = Storage.type;
 
-var Author = db.type('Author', {
+var Author = type('Author', {
   name: String,
   email: String
 });
 
-var Comment = db.type('Comment', {
+var Comment = type('Comment', {
   body: String,
   date: Date,
   comments: ['Comment']
 });
 
-var Post = db.type('Post', {
+var Post = type('Post', {
   author: Author,
   date: Date,
   title: String,
@@ -48,3 +48,4 @@ console.log('Post:', Post.load({
     favs: 0
   }
 }));
+
