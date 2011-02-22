@@ -98,6 +98,7 @@ public:
 
     NODE_SET_PROTOTYPE_METHOD(ctor, "open", Open);
     NODE_SET_PROTOTYPE_METHOD(ctor, "close", Close);
+    NODE_SET_PROTOTYPE_METHOD(ctor, "closeSync", CloseSync);
     NODE_SET_PROTOTYPE_METHOD(ctor, "set", Set);
     NODE_SET_PROTOTYPE_METHOD(ctor, "get", Get);
     NODE_SET_PROTOTYPE_METHOD(ctor, "remove", Remove);
@@ -247,6 +248,15 @@ public:
       return 0;
     }
   };
+
+  static Handle<Value> CloseSync(const Arguments& args) {
+    HandleScope scope;
+
+    PolyDBWrap* wrap = ObjectWrap::Unwrap<PolyDBWrap>(args.This());
+    PolyDB* db = wrap->db;
+
+    return Boolean::New(db->close());
+  }
 
   
   // ### Set ###
