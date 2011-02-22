@@ -100,6 +100,7 @@ public:
     NODE_SET_PROTOTYPE_METHOD(ctor, "close", Close);
     NODE_SET_PROTOTYPE_METHOD(ctor, "set", Set);
     NODE_SET_PROTOTYPE_METHOD(ctor, "get", Get);
+    NODE_SET_PROTOTYPE_METHOD(ctor, "remove", Remove);
 
     target->Set(String::NewSymbol("PolyDB"), ctor->GetFunction());
   }
@@ -326,6 +327,40 @@ public:
       if (vbuf) argv[argc++] = String::New(vbuf, vsiz);
 
       callback(argc, argv);
+      return 0;
+    }
+  };
+
+  
+  // ### Remove ###
+
+  DEFINE_METHOD(Remove, RemoveRequest)
+  class RemoveRequest: public Request {
+  protected:
+    String::Utf8Value key;
+
+  public:
+    inline static bool validate(const Arguments& args) {
+      return (args.Length() >= 1
+	      && args[0]->IsString());
+    }
+
+    RemoveRequest(const Arguments& args):
+      Request(args, 1),
+      key(args[0]->ToString())
+    {}
+
+    inline int exec() {
+      PolyDB* db = wrap->db;
+      if (!db->remove(*key, key.length())) {
+	result = db->error().code();
+      }
+      return 0;
+    }
+
+    inline int after() {
+      Local<Value> argv[1] = { error() };
+      callback(1, argv);
       return 0;
     }
   };

@@ -5,7 +5,7 @@ run();
 
 function run() {
 
-var db = K.open('/tmp/example.kch', 'a+', function(err) {
+var db = K.open('/tmp/example.kch', 'w+', function(err) {
   if (err) throw err;
   set();
 });
@@ -28,13 +28,22 @@ function get() {
 function setAgain() {
   db.set('beta', 'two', function(err) {
     if (err) throw err;
-    each();
+    each(remove);
   });
 }
 
-function each() {
-  db.each(close, function(val, key) {
+function each(next) {
+  console.log('each:');
+  db.each(next, function(val, key) {
     console.log('Key=%j Value=%j', key, val);
+  });
+}
+
+function remove(err) {
+  if (err) throw err;
+  db.remove('alpha', function(err) {
+    if (err) throw err;
+    each(close);
   });
 }
 

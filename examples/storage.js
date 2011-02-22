@@ -1,5 +1,4 @@
 var Toji = require('../lib/'),
-    db = new Toji.Storage('/tmp'),
     type = Toji.type;
 
 var Person = type('Person', {
@@ -13,7 +12,7 @@ var Comment = type('Comment', {
   comments: ['Comment']
 });
 
-db.open('w+', start);
+var db = Toji.open('/tmp/', 'w+', start);
 
 function start(err) {
   if (err) throw err;
@@ -61,4 +60,14 @@ function showOne(err, obj) {
 function saved(err, obj) {
   if (err) throw err;
   console.log('Saved', obj);
+  db.remove(obj, removed);
+}
+
+function removed(err) {
+  if (err) throw err;
+  console.log('Removed something, now all the people are:');
+  db.find(Person).next(function(err, results) {
+    if (err) throw err;
+    console.log(' ', results.join('\n  '));
+  });
 }
