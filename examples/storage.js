@@ -26,7 +26,7 @@ function start(err) {
 
 function created(err) {
   if (err) throw err;
-  db.find(Person).next(showAll);
+  Person.find(showAll);
 }
 
 function showAll(err, results) {
@@ -38,7 +38,7 @@ function showAll(err, results) {
 }
 
 function lookup() {
-  db.find(Person)
+  Person.find()
     .filter(function(obj) {
       return /Chuck/.test(obj.name);
     })
@@ -53,20 +53,20 @@ function showOne(err, obj) {
   else {
     console.log('Found:', obj);
     obj.name = 'Carlos Ray "Chuck" Norris';
-    db.save(obj, saved);
+    obj.save(saved);
   }
 }
 
 function saved(err, obj) {
   if (err) throw err;
   console.log('Saved', obj);
-  db.remove(obj, removed);
+  obj.remove(removed);
 }
 
 function removed(err) {
   if (err) throw err;
   console.log('Removed something, now all the people are:');
-  db.find(Person).next(function(err, results) {
+  Person.find(function(err, results) {
     if (err) throw err;
     console.log(' ', results.join('\n  '));
   });
