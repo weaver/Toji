@@ -1,5 +1,4 @@
-var Storage = require('../lib/storage'),
-    type = Storage.type;
+var type = require('../lib/index').type;
 
 var Author = type('Author', {
   name: String,
