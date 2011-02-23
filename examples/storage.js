@@ -42,7 +42,7 @@ function lookup() {
     .filter(function(obj) {
       return /Chuck/.test(obj.name);
     })
-    .get(showOne);
+    .one(showOne);
 }
 
 function showOne(err, obj) {
@@ -51,7 +51,7 @@ function showOne(err, obj) {
   else if (!obj)
     console.log('Not found.');
   else {
-    console.log('Found:', obj);
+    console.log('Found: %j', obj.json());
     obj.name = 'Carlos Ray "Chuck" Norris';
     obj.save(saved);
   }
