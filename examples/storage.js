@@ -1,4 +1,5 @@
-var Toji = require('../lib/'),
+var Assert = require('assert'),
+    Toji = require('../lib/'),
     type = Toji.type;
 
 var Person = type('Person', {
@@ -82,6 +83,15 @@ function showUser(err, user) {
     console.log("Couldn't find User.");
   else {
     console.log('Found user:', user);
+    validation();
   }
-
 }
+
+function validation() {
+  Assert.ok((new User({ foo: 'bar' })).foo === undefined);
+  Assert.ok((new Person({ id: 'foo' })).id === 'foo');
+  console.log('valid', (new User({ username: 'frob' })).validate());
+  console.log('invalid %j', (new User()).validate());
+}
+
+
