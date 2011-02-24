@@ -1,4 +1,5 @@
 var Assert = require('assert'),
+    Crypto = require('crypto'),
     Toji = require('../lib/'),
     type = Toji.type;
 
@@ -14,7 +15,26 @@ var Comment = type('Comment', {
 });
 
 var User = type('User', {
-  username: Toji.ObjectId
+  username: Toji.ObjectId,
+  password: String
+});
+
+User.beforeSave(function(obj) {
+  if (obj.password) {
+    var salt = Math.floor(Math.random() * Math.exp(10)).toString(),
+        hash = Crypto.createHash('sha256').update(salt).update(obj.password);
+    obj.password = '{{SHA256}}' + salt + '$' + hash.digest('base64');
+  }
+});
+
+User.afterSave(function(obj) {
+  obj._password = obj.password;
+  obj.password = '';
+});
+
+User.afterLoad(function(obj) {
+  obj._password = obj.password;
+  obj.password = '';
 });
 
 var db = Toji.open('/tmp/', 'w+', start);
@@ -26,8 +46,8 @@ function start(err) {
     new Person({ name: 'Chuck Norris', contact: 'fan@chucknorris.com' }),
     new Person({ name: 'Brendan Eich', contact: '@brendaneich' }),
     new Comment({ body: 'first post!', date: Date.now(), comments: [] }),
-    new User({ username: 'alpha' }),
-    new User({ username: 'beta' })
+    new User({ username: 'alpha', password: 'apple' }),
+    new User({ username: 'beta', password: 'boat' })
   ]);
 }
 
@@ -83,15 +103,18 @@ function showUser(err, user) {
     console.log("Couldn't find User.");
   else {
     console.log('Found user:', user);
+    console.log('Hidden password:', user._password);
     validation();
   }
 }
 
 function validation() {
+  var user;
+
   Assert.ok((new User({ foo: 'bar' })).foo === undefined);
   Assert.ok((new Person({ id: 'foo' })).id === 'foo');
-  console.log('valid', (new User({ username: 'frob' })).validate());
-  console.log('invalid %j', (new User()).validate());
-}
 
+  console.log('invalid %j', (new User()).validate());
+  console.log('valid', (new User({ username: 'frob', password: 'frump' })).validate());
+}
 
