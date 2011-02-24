@@ -1,8 +1,7 @@
 var Assert = require('assert'),
-    Avro = require('../lib/avro'),
-    reg = new Avro.Registry();
+    Avro = require('../lib/avro');
 
-var Person = reg.type({
+var Person = Avro.type({
   name: 'Person',
   type: 'record',
   fields: [
@@ -15,11 +14,11 @@ var obj, data;
 
 obj = { name: 'Douglas Crockford', email: 'douglas@crockford.com' };
 
-console.log('From object:', new Person(obj));
-console.log('Dumped: %j', (data = new Person(obj)));
+console.log('As object:', new Person(obj));
+console.log('Dumped:', data = Avro.dump(new Person(obj)));
 console.log('Loaded:', Avro.load(Person, data));
 
-var Related = reg.type({
+var Related = Avro.type({
   name: 'Related',
   type: 'record',
   fields: [
@@ -38,5 +37,5 @@ obj = { title: 'synonyms', words: {
 }};
 
 console.log('From object:', new Related(obj));
-console.log('Dumped: %j', (data = new Related(obj)));
+console.log('Dumped:', data = Avro.dump(new Related(obj)));
 console.log('Loaded:', Avro.load(Related, data));

@@ -12,6 +12,10 @@ var Comment = type('Comment', {
   comments: ['Comment']
 });
 
+var User = type('User', {
+  username: Toji.ObjectId
+});
+
 var db = Toji.open('/tmp/', 'w+', start);
 
 function start(err) {
@@ -20,13 +24,15 @@ function start(err) {
     new Person({ name: 'Douglas Crockford', contact: 'douglas@crockford.com' }),
     new Person({ name: 'Chuck Norris', contact: 'fan@chucknorris.com' }),
     new Person({ name: 'Brendan Eich', contact: '@brendaneich' }),
-    new Comment({ body: 'first post!', date: Date.now(), comments: [] })
+    new Comment({ body: 'first post!', date: Date.now(), comments: [] }),
+    new User({ username: 'alpha' }),
+    new User({ username: 'beta' })
   ]);
 }
 
 function created(err) {
   if (err) throw err;
-  Person.find(showAll);
+  Person.find({}, showAll);
 }
 
 function showAll(err, results) {
@@ -38,11 +44,7 @@ function showAll(err, results) {
 }
 
 function lookup() {
-  Person.find()
-    .filter(function(obj) {
-      return /Chuck/.test(obj.name);
-    })
-    .one(showOne);
+  Person.find({ name: /Chuck/ }).one(showOne);
 }
 
 function showOne(err, obj) {
@@ -66,8 +68,20 @@ function saved(err, obj) {
 function removed(err) {
   if (err) throw err;
   console.log('Removed something, now all the people are:');
-  Person.find(function(err, results) {
+  Person.find({}, function(err, results) {
     if (err) throw err;
     console.log(' ', results.join('\n  '));
+    User.find('alpha', showUser);
   });
+}
+
+function showUser(err, user) {
+  if (err)
+    throw err;
+  else if (!user)
+    console.log("Couldn't find User.");
+  else {
+    console.log('Found user:', user);
+  }
+
 }
