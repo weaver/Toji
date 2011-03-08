@@ -19,6 +19,8 @@ var User = type('User', {
   password: String
 });
 
+User.validatesPresenceOf('username');
+
 User.beforeSave(function(obj) {
   if (obj.password) {
     var salt = Math.floor(Math.random() * Math.exp(10)).toString(),
