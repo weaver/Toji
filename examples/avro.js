@@ -39,3 +39,25 @@ obj = { title: 'synonyms', words: {
 console.log('From object:', new Related(obj));
 console.log('Dumped:', data = Avro.dumpJSON(new Related(obj)));
 console.log('Loaded:', Avro.loadJSON(Related, data));
+
+var Choose = Avro.type({
+  name: 'Choose',
+  type: 'record',
+  fields: [
+    { name: 'title', type: 'string' },
+    { name: 'description', type: [null, 'string'] },
+    { name: 'choice', type: [Person, Related, null] }
+  ]
+});
+
+obj = {
+  title: 'Hello, world',
+  description: 'frob',
+  choice: new Related(obj)
+};
+
+console.log('Unioned', new Choose(obj));
+console.log('Unioned dump:', data = Avro.dumpJSON(new Choose(obj)));
+console.log('Unioned load:', Avro.loadJSON(Choose, data));
+console.log('Loaded choice', Avro.loadJSON(Choose, data).choice.toString());
+console.log('Unioned export:', data = (new Choose(obj)).exportJSON());

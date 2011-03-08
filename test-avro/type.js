@@ -3,8 +3,8 @@ var Vows = require('vows'),
     Type = require('../lib/avro/type'),
     Schema = require('../lib/avro/schema');
 
-var A = Schema.createType({ name: 'A', type: 'record' }),
-    B = Schema.createType(A, { name: 'B', type: 'record' });
+var A = Schema.createType({ name: 'A', type: 'record' }, function A() {}),
+    B = Schema.createType(A, { name: 'B', type: 'record' }, function B() {});
 
 Vows.describe('Avro Types')
   .addBatch({
@@ -41,6 +41,14 @@ Vows.describe('Avro Types')
 
       'is a subclass of its superclass': function(topic) {
         Assert.ok(Type.isSubclass(B, A));
+      }
+    },
+
+    'Null values': {
+      topic: function() { return null; },
+
+      'Type.of': function(topic) {
+        Assert.equal(Type.of(topic), null);
       }
     }
   })
