@@ -20,12 +20,12 @@ and store a document:
 
       var chuck = new Person({
         name: 'Chuck Norris',
-	email: 'fan@chucknorris.com'
+        email: 'fan@chucknorris.com'
       });
 
       chuck.save(function(err) {
         if (err) throw err;
-	console.log('Saved', chuck);
+        console.log('Saved', chuck);
       });
 
     });
@@ -97,18 +97,37 @@ mapping dates to strings using the `new Date()` constructor and
 
 **Toji.ObjectId**
 
-This special type may be used once in a model definition. It specifies
-a "primary key" for a model. If it's not given, Toji create a virtual
-property called `id`.
+This special type may be used once in a model definition. It declares
+that a certain field is the "primary key" for a model. The value of
+the field should be a string. If it's not given, Toji creates a
+virtual property called `id`.
 
     var User = Toji.type('User', {
-      email: ObjectId,
+      email: Toji.ObjectId,
       password: String
     });
 
     User.find('nobody@example.net', function(err, user) {
       ...
     });
+
+**Toji.Ref(type)**
+
+Normally all fields values are embedded into a Toji document. Use
+`Toji.Ref()` to declare that a field should be a reference. The `type`
+argument can be any field type.
+
+    var Account = Toji.type('Account', {
+      name: String,
+      friends: Toji.Ref([Account])
+    });
+
+    Account.find({ name: 'some-account-name' })
+      .with('friends')
+      .then(function(err, acct) {
+        if (err) throw err;
+	console.log('Friends of "%s": %j', acct.name, acct.friends);
+      });
 
 ## Storage ##
 

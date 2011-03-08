@@ -1,5 +1,5 @@
 var Assert = require('assert'),
-    Avro = require('../lib/avro');
+    Avro = require('../lib/avro/index');
 
 var Person = Avro.type({
   name: 'Person',
@@ -15,8 +15,8 @@ var obj, data;
 obj = { name: 'Douglas Crockford', email: 'douglas@crockford.com' };
 
 console.log('As object:', new Person(obj));
-console.log('Dumped:', data = Avro.dump(new Person(obj)));
-console.log('Loaded:', Avro.load(Person, data));
+console.log('Dumped:', data = Avro.dumpJSON(new Person(obj)));
+console.log('Loaded:', Avro.loadJSON(Person, data));
 
 var Related = Avro.type({
   name: 'Related',
@@ -37,5 +37,5 @@ obj = { title: 'synonyms', words: {
 }};
 
 console.log('From object:', new Related(obj));
-console.log('Dumped:', data = Avro.dump(new Related(obj)));
-console.log('Loaded:', Avro.load(Related, data));
+console.log('Dumped:', data = Avro.dumpJSON(new Related(obj)));
+console.log('Loaded:', Avro.loadJSON(Related, data));

@@ -19,6 +19,8 @@ var User = type('User', {
   password: String
 });
 
+console.log('pk', User.__pk__);
+
 User.beforeSave(function(obj) {
   if (obj.password) {
     var salt = Math.floor(Math.random() * Math.exp(10)).toString(),

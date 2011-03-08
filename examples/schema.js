@@ -25,18 +25,18 @@ var Post = type('Post', {
 
 var author, comment;
 
-console.log('Author:', author = Author.load({
+console.log('Author:', author = Author.loadJSON({
   name: 'Foo',
   email: 'foo@example.net'
 }));
 
-console.log('Comment:', comment = Comment.load({
+console.log('Comment:', comment = Comment.loadJSON({
   body: 'First post!',
   date: '11/21/07',
   comments: []
 }));
 
-console.log('Post:', Post.load({
+console.log('Post:', Post.loadJSON({
   author: author,
   date: '11/20/07',
   title: 'Some Words',
