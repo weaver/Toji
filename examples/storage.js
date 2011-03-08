@@ -75,6 +75,7 @@ function showOne(err, obj) {
     console.log('Not found.');
   else {
     console.log('Found: %j', obj.json());
+    console.log('Dump REPR: %j', obj.dumpJSON());
     obj.name = 'Carlos Ray "Chuck" Norris';
     obj.save(saved);
   }
