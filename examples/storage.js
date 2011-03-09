@@ -1,25 +1,23 @@
 var Assert = require('assert'),
     Crypto = require('crypto'),
-    Toji = require('../lib/'),
-    type = Toji.type;
+    Toji = require('../lib/');
 
-var Person = type('Person', {
+var Person = Toji.type('Person', {
   name: String,
   contact: String
 });
 
-var Comment = type('Comment', {
+var Comment = Toji.type('Comment', {
   body: String,
   date: Date,
   comments: ['Comment']
 });
 
-var User = type('User', {
+var User = Toji.type('User', {
   username: Toji.ObjectId,
   password: String
-});
-
-User.validatesPresenceOf('username');
+})
+.validatesPresenceOf('username');
 
 User.beforeSave(function(obj) {
   if (obj.password) {
@@ -38,6 +36,10 @@ User.afterLoad(function(obj) {
   obj._password = obj.password;
   obj.password = '';
 });
+
+// var Box = Toji.type({
+//   value: Toji.union(Person, Comment, User)
+// });
 
 var db = Toji.open('/tmp/', 'w+', start);
 
