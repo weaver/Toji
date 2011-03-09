@@ -1,6 +1,6 @@
 var Assert = require('assert'),
     Crypto = require('crypto'),
-    Toji = require('../lib/');
+    Toji = require('Toji');
 
 var Person = Toji.type('Person', {
   name: String,
