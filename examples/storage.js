@@ -38,7 +38,8 @@ User.afterLoad(function(obj) {
 });
 
 var Box = Toji.type('Box', {
-  value: Toji.union(Person, Comment, User)
+  value: Toji.union(Person, Comment, User),
+  values: [Toji.union(Person, Comment, User)]
 });
 
 var db = Toji.open('/tmp/', 'w+', start);
@@ -128,7 +129,7 @@ function validation() {
 function unions() {
   User.find('alpha', function(err, alpha) {
     if (err) throw err;
-    (new Box({ value: alpha })).save(saved);
+    (new Box({ value: alpha, values: [alpha] })).save(saved);
   });
 
   function saved(err, obj) {
@@ -140,6 +141,7 @@ function unions() {
     if (err) throw err;
     Assert.equal(box.value.username, 'alpha');
     console.log('box: %j', box.json());
+    console.log('box: %j', box.dumpJSON());
   }
 }
 
