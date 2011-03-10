@@ -1,6 +1,6 @@
 var Assert = require('assert'),
     Crypto = require('crypto'),
-    Toji = require('Toji');
+    Toji = require('../lib');
 
 var Person = Toji.type('Person', {
   name: String,
@@ -37,9 +37,9 @@ User.afterLoad(function(obj) {
   obj.password = '';
 });
 
-// var Box = Toji.type({
-//   value: Toji.union(Person, Comment, User)
-// });
+var Box = Toji.type('Box', {
+  value: Toji.union(Person, Comment, User)
+});
 
 var db = Toji.open('/tmp/', 'w+', start);
 
@@ -121,5 +121,25 @@ function validation() {
 
   console.log('invalid %j', (new User()).validate());
   console.log('valid', (new User({ username: 'frob', password: 'frump' })).validate());
+
+  unions();
+}
+
+function unions() {
+  User.find('alpha', function(err, alpha) {
+    if (err) throw err;
+    (new Box({ value: alpha })).save(saved);
+  });
+
+  function saved(err, obj) {
+    if (err) throw err;
+    Box.find(obj.id, found);
+  }
+
+  function found(err, box) {
+    if (err) throw err;
+    Assert.equal(box.value.username, 'alpha');
+    console.log('box: %j', box.json());
+  }
 }
 
