@@ -43,6 +43,11 @@ var Box = Toji.type('Box', {
   point: { x: String, y: String }
 });
 
+var Tree = Toji.type('Tree', {
+  supervisor: Toji.ref(Person),
+  employees: [Toji.ref(Person)]
+});
+
 var db = Toji.open('/tmp/', 'w+', start);
 
 function start(err) {
@@ -147,6 +152,40 @@ function unions() {
     Assert.equal(box.value.username, 'alpha');
     console.log('box: %j', box.json());
     console.log('box: %j', box.dumpJSON());
+    refs();
   }
+}
+
+function refs() {
+  Person.find({}, function(err, people) {
+    if (err) throw err;
+    var tree = (new Tree({ supervisor: people[0], employees: people.slice(1) }));
+    console.log('validate tree %j', tree.validate());
+
+    tree.save(function(err, tree) {
+      if (err) throw err;
+      console.log('tree %j', tree.json());
+      console.log('validated tree %j', (new Tree(tree.json())).validate());
+
+      Tree.find(tree.id)
+        .resolve('supervisor', 'employees')
+        .one(function(err, obj) {
+          if (err) throw err;
+          console.log('loaded tree', obj);
+
+          Tree.find({})
+            .resolve('employees')
+            .all(function(err, results) {
+              if (err) throw err;
+              console.log('all trees', require('util').inspect(results, false, null));
+
+              results[0].resolve('employees', 'supervisor', function(err) {
+                if (err) throw err;
+                console.log('resolved object', results[0]);
+              });
+            });
+        });
+    });
+  });
 }
 
