@@ -1,55 +1,30 @@
-var Vows = require('vows'),
-    Assert = require('assert'),
+var Assert = require('assert'),
     Type = require('../lib/avro/type'),
     Schema = require('../lib/avro/schema');
 
-var A = Schema.createType({ name: 'A', type: 'record' }, function A() {}),
-    B = Schema.createType(A, { name: 'B', type: 'record' }, function B() {});
+Schema.createType({ name: 'A', type: 'record' }, A);
+function A() {
 
-Vows.describe('Avro Types')
-  .addBatch({
-    'A type': {
-      topic: function() { return A; },
+}
 
-      'is a type': function(topic) {
-        Assert.ok(Type.isType(A));
-      },
+Schema.createType(A, { name: 'B', type: 'record' }, B);
+function B() {
 
-      'has a name': function(topic) {
-        Assert.equal(Type.name(topic), 'A');
-      },
+}
 
-      'is a subclass of itself': function(topic) {
-        Assert.ok(Type.isSubclass(A, A));
-      },
+module.exports = {
+  'a type': function() {
+    Assert.ok(Type.isType(A));
 
-      'is not a subclass of its subclasses': function(topic) {
-        Assert.ok(!Type.isSubclass(A, B));
-      }
-    },
+    Assert.equal(Type.name(A), 'A');
 
-    'A subclass': {
-      topic: function() { return B; },
+    Assert.ok(Type.isSubclass(A, A));
+    Assert.ok(Type.isSubclass(B, A));
+    Assert.ok(!Type.isSubclass(A, B));
+  },
 
-      'is a type': function(topic) {
-        Assert.ok(Type.isType(A));
-      },
-
-      'has a name': function(topic) {
-        Assert.equal(Type.name(topic), 'B');
-      },
-
-      'is a subclass of its superclass': function(topic) {
-        Assert.ok(Type.isSubclass(B, A));
-      }
-    },
-
-    'Null values': {
-      topic: function() { return null; },
-
-      'Type.of': function(topic) {
-        Assert.equal(Type.of(topic), null);
-      }
-    }
-  })
-  .export(module);
+  'of': function() {
+    Assert.equal(Type.of(null), null);
+    Assert.equal(Type.of(new A()), A);
+  }
+};
