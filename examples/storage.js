@@ -53,8 +53,8 @@ var db = Toji.open('/tmp/', 'w+', start);
 function start(err) {
   if (err) throw err;
   db.load(created, [
-    new Person({ name: 'Douglas Crockford', contact: 'douglas@crockford.com' }),
     new Person({ name: 'Chuck Norris', contact: 'fan@chucknorris.com' }),
+    new Person({ name: 'Douglas Crockford', contact: 'douglas@crockford.com' }),
     new Person({ name: 'Brendan Eich', contact: '@brendaneich' }),
     new Comment({ body: 'first post!', date: Date.now(), comments: [] }),
     new User({ username: 'alpha', password: 'apple' }),
@@ -172,9 +172,10 @@ function refs() {
         .one(function(err, obj) {
           if (err) throw err;
           console.log('loaded tree', obj);
+          console.log('loaded tree json', obj.json());
 
           Tree.find({})
-            .resolve('employees')
+            .resolve('supervisor')
             .all(function(err, results) {
               if (err) throw err;
               console.log('all trees', require('util').inspect(results, false, null));
@@ -182,6 +183,7 @@ function refs() {
               results[0].resolve('employees', 'supervisor', function(err) {
                 if (err) throw err;
                 console.log('resolved object', results[0]);
+                console.log('resolved object dump', results[0].json());
               });
             });
         });
