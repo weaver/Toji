@@ -6,7 +6,7 @@ var Person = Toji.type('Person', {
   name: String,
   contact: String
 })
-.useRandomKeys();
+.useRandomIds();
 
 var Comment = Toji.type('Comment', {
   body: String,
