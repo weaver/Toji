@@ -17,7 +17,7 @@ var User = Toji.type('User', {
   username: Toji.ObjectId,
   password: String
 })
-.validatesPresenceOf('username');
+.validatesPresenceOf(['username', 'password']);
 
 User.beforeSave(function(obj) {
   if (obj.password) {
@@ -126,10 +126,14 @@ function validation() {
   Assert.ok((new User({ foo: 'bar' })).foo === undefined);
   Assert.ok((new Person({ id: 'foo' })).id === 'foo');
 
-  console.log('invalid %j', (new User()).validate());
-  console.log('valid', (new User({ username: 'frob', password: 'frump' })).validate());
+  Assert.ok((new User({ username: 'frob', password: 'frump' })).isValid());
+  Assert.ok(!(user = new User()).isValid());
+  console.log('invalid %j', user.errors);
 
-  unions();
+  (new User({ username: "frob", password: "" })).save(function(err, obj) {
+    Assert.ok(err, 'expected error');
+    unions();
+  });
 }
 
 function unions() {
