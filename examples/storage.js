@@ -165,12 +165,14 @@ function refs() {
   Person.find({}, function(err, people) {
     if (err) throw err;
     var tree = (new Tree({ supervisor: people[0], employees: people.slice(1) }));
-    console.log('validate tree %j', tree.validate());
+    Assert.ok(tree.isValid());
 
     tree.save(function(err, tree) {
       if (err) throw err;
       console.log('tree %j', tree.json());
-      console.log('validated tree %j', (new Tree(tree.json())).validate());
+      tree = (new Tree(tree.json()));
+      tree.isValid();
+      Assert.deepEqual({}, tree.errors);
 
       Tree.find(tree.id)
         .resolve('supervisor', 'employees')
