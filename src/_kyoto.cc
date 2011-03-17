@@ -100,6 +100,7 @@ public:
     NODE_SET_PROTOTYPE_METHOD(ctor, "close", Close);
     NODE_SET_PROTOTYPE_METHOD(ctor, "closeSync", CloseSync);
     NODE_SET_PROTOTYPE_METHOD(ctor, "set", Set);
+    NODE_SET_PROTOTYPE_METHOD(ctor, "add", Add);
     NODE_SET_PROTOTYPE_METHOD(ctor, "get", Get);
     NODE_SET_PROTOTYPE_METHOD(ctor, "remove", Remove);
 
@@ -292,6 +293,25 @@ public:
     inline int after() {
       Local<Value> argv[1] = { error() };
       callback(1, argv);
+      return 0;
+    }
+  };
+
+  
+  // ### Add ###
+
+  DEFINE_METHOD(Add, AddRequest)
+  class AddRequest: public SetRequest {
+  public:
+    AddRequest(const Arguments& args) :
+      SetRequest(args)
+    {}
+
+    inline int exec() {
+      PolyDB* db = wrap->db;
+      if (!db->add(*key, key.length(), *value, value.length())) {
+	result = db->error().code();
+      }
       return 0;
     }
   };

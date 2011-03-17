@@ -28,7 +28,7 @@ function get() {
 function setAgain() {
   db.set('beta', 'two', function(err) {
     if (err) throw err;
-    each(remove);
+    each(add);
   });
 }
 
@@ -36,6 +36,20 @@ function each(next) {
   console.log('each:');
   db.each(next, function(val, key) {
     console.log('Key=%j Value=%j', key, val);
+  });
+}
+
+function add() {
+  db.add('gamma', 'three', function(err) {
+    if (err) throw err;
+    each(addAgain);
+  });
+}
+
+function addAgain() {
+  db.add('gamma', 'replaced three', function(err) {
+    if (err && err.code != K.DUPREC) throw err;
+    each(remove);
   });
 }
 
