@@ -1,6 +1,6 @@
 {
   "name": "Toji",
-  "version": "0.0.10",
+  "version": "0.0.11",
   "description": "Kyoto Cabinet bindings for Node.js with an Avro mapper.",
   "author": "Ben Weaver <ben@orangesoda.net>",
   "directories": { "lib": "./lib" },

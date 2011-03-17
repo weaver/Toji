@@ -5,7 +5,8 @@ var Assert = require('assert'),
 var Person = Toji.type('Person', {
   name: String,
   contact: String
-});
+})
+.useRandomKeys();
 
 var Comment = Toji.type('Comment', {
   body: String,
