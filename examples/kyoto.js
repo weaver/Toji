@@ -49,7 +49,22 @@ function add() {
 function addAgain() {
   db.add('gamma', 'replaced three', function(err) {
     if (err && err.code != K.DUPREC) throw err;
-    each(remove);
+    each(replace);
+  });
+}
+
+function replace() {
+  db.replace('gamma', 'really replaced three', function(err) {
+    if (err) throw err;
+    failReplace();
+  });
+}
+
+function failReplace() {
+  db.replace('fail', '', function(err) {
+    if (!err) throw 'didnt replace';
+    else if (err.code != K.NOREC) throw err;
+    remove();
   });
 }
 

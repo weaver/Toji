@@ -26,6 +26,8 @@ User.beforeSave(function(obj) {
         hash = Crypto.createHash('sha256').update(salt).update(obj.password);
     obj.password = '{{SHA256}}' + salt + '$' + hash.digest('base64');
   }
+  else
+    obj.password = obj._password;
 });
 
 User.afterSave(function(obj) {

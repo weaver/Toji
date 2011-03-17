@@ -101,6 +101,7 @@ public:
     NODE_SET_PROTOTYPE_METHOD(ctor, "closeSync", CloseSync);
     NODE_SET_PROTOTYPE_METHOD(ctor, "set", Set);
     NODE_SET_PROTOTYPE_METHOD(ctor, "add", Add);
+    NODE_SET_PROTOTYPE_METHOD(ctor, "replace", Replace);
     NODE_SET_PROTOTYPE_METHOD(ctor, "get", Get);
     NODE_SET_PROTOTYPE_METHOD(ctor, "remove", Remove);
 
@@ -310,6 +311,25 @@ public:
     inline int exec() {
       PolyDB* db = wrap->db;
       if (!db->add(*key, key.length(), *value, value.length())) {
+	result = db->error().code();
+      }
+      return 0;
+    }
+  };
+
+  
+  // ### Replace ###
+
+  DEFINE_METHOD(Replace, ReplaceRequest)
+  class ReplaceRequest: public SetRequest {
+  public:
+    ReplaceRequest(const Arguments& args) :
+      SetRequest(args)
+    {}
+
+    inline int exec() {
+      PolyDB* db = wrap->db;
+      if (!db->replace(*key, key.length(), *value, value.length())) {
 	result = db->error().code();
       }
       return 0;
