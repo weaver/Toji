@@ -124,7 +124,7 @@ function validation() {
   var user;
 
   Assert.ok((new User({ foo: 'bar' })).foo === undefined);
-  Assert.ok((new Person({ id: 'foo' })).id === 'foo');
+  Assert.ok((new Person({ id: 'foo' })).id === undefined);
 
   Assert.ok((new User({ username: 'frob', password: 'frump' })).isValid());
   Assert.ok(!(user = new User()).isValid());
