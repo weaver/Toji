@@ -3,14 +3,10 @@ var Assert = require('assert'),
     Schema = require('../lib/avro/schema');
 
 Schema.createType({ name: 'A', type: 'record' }, A);
-function A() {
-
-}
+function A() {}
 
 Schema.createType(A, { name: 'B', type: 'record' }, B);
-function B() {
-
-}
+function B() {}
 
 module.exports = {
   'a type': function() {

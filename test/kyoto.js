@@ -27,10 +27,17 @@ module.exports = {
     });
   },
 
+  'set again': function(done) {
+    db.set('alpha', 'changed one', function(err) {
+      if (err) throw err;
+      allEqual(done, { alpha: 'changed one' });
+    });
+  },
+
   'add': function(done) {
     db.add('beta', 'two', function(err) {
       if (err) throw err;
-      allEqual(done, { alpha: 'one', beta: 'two' });
+      allEqual(done, { alpha: 'changed one', beta: 'two' });
     });
   },
 
@@ -38,14 +45,14 @@ module.exports = {
     db.add('beta', 'replaced two', function(err) {
       Assert.ok(err);
       Assert.equal(err.code, Kyoto.DUPREC);
-      allEqual(done, { alpha: 'one', beta: 'two' });
+      allEqual(done, { alpha: 'changed one', beta: 'two' });
     });
   },
 
   'replace': function(done) {
     db.replace('beta', 'replaced two', function(err) {
       if (err) throw err;
-      allEqual(done, { alpha: 'one', beta: 'replaced two' });
+      allEqual(done, { alpha: 'changed one', beta: 'replaced two' });
     });
   },
 
@@ -53,7 +60,7 @@ module.exports = {
     db.replace('gamma', 'three', function(err) {
       Assert.ok(err);
       Assert.equal(err.code, Kyoto.NOREC);
-      allEqual(done, { alpha: 'one', beta: 'replaced two' });
+      allEqual(done, { alpha: 'changed one', beta: 'replaced two' });
     });
   },
 
