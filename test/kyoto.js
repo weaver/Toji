@@ -42,7 +42,7 @@ module.exports = {
     });
   },
 
-  'add fails': function(done) {
+  'replace': function(done) {
     db.replace('beta', 'replaced two', function(err) {
       if (err) throw err;
       allEqual(done, { alpha: 'one', beta: 'replaced two' });
