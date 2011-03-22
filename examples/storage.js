@@ -177,19 +177,19 @@ function refs() {
       Assert.deepEqual({}, tree.errors);
 
       Tree.find(tree.id)
-        .resolve('supervisor', 'employees')
+        .include('supervisor', 'employees')
         .one(function(err, obj) {
           if (err) throw err;
           console.log('loaded tree', obj);
           console.log('loaded tree json', obj.json());
 
           Tree.find({})
-            .resolve('supervisor')
+            .include('supervisor')
             .all(function(err, results) {
               if (err) throw err;
               console.log('all trees', require('util').inspect(results, false, null));
 
-              results[0].resolve('employees', 'supervisor', function(err) {
+              results[0].include('employees', 'supervisor', function(err) {
                 if (err) throw err;
                 console.log('resolved object', results[0]);
                 console.log('resolved object dump', results[0].json());

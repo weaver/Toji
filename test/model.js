@@ -7,7 +7,7 @@ module.exports = {
     db = Toji.open('/tmp', 'w+', done);
   },
 
-  'simple type': function(done) {
+  'simple type schema': function(done) {
     var SimpleItem = Toji.type('SimpleItem', {
       name: String,
       quantity: Number
@@ -24,12 +24,18 @@ module.exports = {
 
     Assert.equal(SimpleItem.__pk__, 'id');
 
-    // var data = { name: 'apple', quantity: 5 },
-    //     item = new SimpleItem(data);
+    done();
+  },
 
-    // Assert.deepEqual(item.json(), data);
-    // Assert.deepEqual(item.dumpJSON(), data);
-    // Assert.deepEqual(SimpleItem.loadJSON(data).dumpJSON(), data);
+  'simple type data': function(done) {
+    var Item = Toji.type('SimpleItem');
+
+    var item = new Item({ name: 'apple', quantity: 5 }),
+        saved;
+
+    Assert.deepEqual(item.json(), { name: 'apple', quantity: 5 });
+    Assert.deepEqual(saved = item.dumpJSON(), { name: {"string": "apple"}, quantity: {"double": 5}});
+    Assert.deepEqual(Item.loadJSON(saved).dumpJSON(), saved);
 
     done();
   },
@@ -41,10 +47,18 @@ module.exports = {
     });
 
     Assert.equal(UserModel.__pk__, 'username');
+
+    var item = new UserModel({ username: 'sam', password: 'iam' }),
+        saved;
+
+    Assert.deepEqual(item.json(), { username: 'sam', password: 'iam' });
+    Assert.deepEqual(saved = item.dumpJSON(), { username: {"string": "sam"}, password: {"string": "iam"}});
+    Assert.deepEqual(UserModel.loadJSON(saved).dumpJSON(), saved);
+
     done();
   },
 
-  'complex type': function(done) {
+  'complex type schema': function(done) {
     var Item = Toji.type('SimpleItem'),
         User = Toji.type('UserModel');
 
@@ -74,6 +88,40 @@ module.exports = {
         { type: ['string', 'null'], name: 'y'  }
       ]
     });
+
+    done();
+  },
+
+  'complex type data': function(done) {
+    var Item = Toji.type('SimpleItem'),
+        User = Toji.type('UserModel'),
+        Box = Toji.type('Box');
+
+    var item = new Item({ name: 'alpha', quantity: 0 }),
+        u1 = new User({ username: 'u1', password: 'p1' }),
+        u2 = new User({ username: 'u2', password: 'p2' }),
+        box = new Box({ value: u1, values: [item, u2], point: {x: "1", y: "2"} }),
+        saved;
+
+    Assert.deepEqual(box.json(), {
+      value: { 'UserModel': { username: 'u1', password: 'p1' } },
+      values: [
+        { 'SimpleItem': { name: 'alpha', quantity: 0 } },
+        { 'UserModel': { username: 'u2', password: 'p2' } }
+      ],
+      point: {x: '1', y: '2'}
+    });
+
+    Assert.deepEqual(saved = box.dumpJSON(), {
+      value: { 'UserModel': { username: { string: 'u1' }, password: { string: 'p1' } } },
+      values: { 'array': [
+        { 'SimpleItem': { name: { string: 'alpha' }, quantity: { 'double': 0 } } },
+        { 'UserModel': { username: { string: 'u2' }, password: { string: 'p2' } } }
+      ] },
+      point: {'Box.point': {x: { string: '1' }, y: { string: '2' } } }
+    });
+
+    Assert.deepEqual(Box.loadJSON(saved).dumpJSON(), saved);
 
     done();
   },
