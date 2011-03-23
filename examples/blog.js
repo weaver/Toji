@@ -11,8 +11,6 @@ var Author = Toji.type('Author', {
     throw 'bad account name';
 });
 
-console.log(Sys.inspect(Author.__schema__, null, null));
-
 // A self-referencial model: a comment contains an array of replies.
 var Comment = Toji.type('Comment', {
   body: String,

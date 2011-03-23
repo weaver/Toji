@@ -7,34 +7,99 @@ module.exports = {
     db = Toji.open('/tmp', 'w+', done);
   },
 
-  'presence': function(done) {
-    var ExampleUser = Toji.type('ExampleUser', {
+  'not empty': function(done) {
+    var NotEmptyUser = Toji.type('NotEmptyUser', {
       username: Toji.ObjectId,
       password: String,
+      active: Boolean,
+      tokens: Number,
+      tags: [String],
       fullName: String
     })
-    .validatesPresenceOf(['username', 'password']);
+    .validatesNotEmpty(['password', 'active', 'tokens', 'tags']);
 
-    Assert.deepEqual(ExampleUser.__schema__, {
+    Assert.deepEqual(NotEmptyUser.__schema__, {
       type: 'record',
-      name: 'ExampleUser',
+      name: 'NotEmptyUser',
       fields: [
         { type: 'string', name: 'username' },
         { type: 'string', name: 'password' },
+        { type: 'boolean', name: 'active' },
+        { type: 'double', name: 'tokens' },
+        { type: { type: 'array', items: 'string' }, name: 'tags' },
         { type: ['string', 'null'], name: 'fullName' }
       ]
     });
 
-    Assert.equal(ExampleUser.__pk__, 'username');
+    Assert.equal(NotEmptyUser.__pk__, 'username');
 
     var user;
 
-    Assert.ok((user = new ExampleUser({ username: 'a', password: 'b' })).isValid());
-    Assert.ok(!(user = new ExampleUser({ username: '' })).isValid());
+    Assert.ok((user = new NotEmptyUser({
+      username: 'a',
+      password: 'b',
+      active: false,
+      tokens: 0,
+      tags: ['new']
+    })).isValid());
+
+    Assert.ok(!(user = new NotEmptyUser({ username: '', tags: [] })).isValid());
 
     Assert.deepEqual(user.errors, {
-      username: ['expected non-empty value'],
-      password: ['expected non-empty value']
+      password: ['expected non-empty value'],
+      active: ['expected non-empty value'],
+      tokens: ['expected non-empty value'],
+      tags: ['expected non-empty value'],
+      username: ['missing required value']
+    });
+
+    done();
+  },
+
+  'not null': function(done) {
+    var NotNullUser = Toji.type('NotNullUser', {
+      username: Toji.ObjectId,
+      password: String,
+      active: Boolean,
+      tokens: Number,
+      tags: [String],
+      fullName: String
+    })
+    .validatesNotNull(['password', 'active', 'tokens', 'tags']);
+
+    Assert.deepEqual(NotNullUser.__schema__, {
+      type: 'record',
+      name: 'NotNullUser',
+      fields: [
+        { type: 'string', name: 'username' },
+        { type: 'string', name: 'password' },
+        { type: 'boolean', name: 'active' },
+        { type: 'double', name: 'tokens' },
+        { type: { type: 'array', items: 'string' }, name: 'tags' },
+        { type: ['string', 'null'], name: 'fullName' }
+      ]
+    });
+
+    Assert.equal(NotNullUser.__pk__, 'username');
+
+    var user;
+
+    Assert.ok((user = new NotNullUser({
+      username: 'a',
+      password: 'b',
+      active: false,
+      tokens: 0,
+      tags: []
+    })).isValid());
+
+    Assert.ok(!(user = new NotNullUser({ username: '' })).isValid());
+
+    Assert.deepEqual(user.errors, {
+      password: ['expected non-null value'],
+      active: ['expected non-null value'],
+      tokens: ['expected non-null value'],
+      tags: ['expected non-null value'],
+      username: ['missing required value']
     });
 
     done();
@@ -45,22 +110,65 @@ module.exports = {
       a: Number,
       b: Number
     })
-    .validatesPresenceOf('a', 'you gave me an empty value')
+    .validatesNotEmpty('a', 'you gave me an empty value')
     .validates(['a', 'b'], function(val, field) {
       if ((typeof val != 'number') || (val % 2 != 0))
         throw 'even numbers only';
     });
 
-    (new CustomItem({})).save(function(err, item) {
-      Assert.ok(err);
-      Assert.equal(err.message, 'CustomItem: you gave me an empty value (data = {})');
-      Assert.deepEqual(item.errors, {
-        a: ['you gave me an empty value', 'even numbers only'],
-        b: ['even numbers only']
+    secondTry();
+
+    function firstTry() {
+      (new CustomItem({})).save(function(err, item) {
+        Assert.ok(err);
+        Assert.equal(err.message, 'CustomItem: you gave me an empty value (data = {})');
+        Assert.deepEqual(item.errors, {
+          a: ['you gave me an empty value', 'even numbers only'],
+          b: ['even numbers only']
+        });
+        Assert.ok(!item.isValid());
+        secondTry();
       });
-      Assert.ok(!item.isValid());
-      done();
+    }
+
+    function secondTry() {
+      (new CustomItem({ a: 1, b: 2 })).save(function(err, item) {
+        Assert.ok(err);
+        Assert.deepEqual(item.errors, {
+          a: ['even numbers only']
+        });
+        Assert.ok(!item.isValid());
+        theCharm();
+      });
+    }
+
+    function theCharm() {
+      (new CustomItem({ a: 2, b: 4 })).save(function(err, item) {
+        Assert.ok(!err);
+        Assert.deepEqual(item.errors, {});
+        Assert.ok(item.isValid());
+        done();
+      });
+    }
+  },
+
+  'nested': function(done) {
+    var NestedItem = Toji.type('NestedItem', {
+      a: { b: Number },
+      b: [String],
+      c: [{ d: Number }]
     });
+
+    (new NestedItem({ a: { b: 'foo' }, b: [10], c: [{ d: 'bar' }] }))
+     .save(function(err, item) {
+        Assert.ok(err);
+        Assert.deepEqual(item.errors, {
+          a: ['expected `double`: "foo"'],
+          b: ['expected `string`: 10'],
+          c: ['expected `double`: "bar"']
+        });
+        done();
+      });
   }
 
 };
