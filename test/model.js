@@ -31,11 +31,12 @@ module.exports = {
     var Item = Toji.type('SimpleItem');
 
     var item = new Item({ name: 'apple', quantity: 5 }),
-        saved;
+        json, saved;
 
-    Assert.deepEqual(item.json(), { name: 'apple', quantity: 5 });
+    Assert.deepEqual(item.json(), json = { name: 'apple', quantity: 5 });
     Assert.deepEqual(saved = item.dumpJSON(), { name: {"string": "apple"}, quantity: {"double": 5}});
     Assert.deepEqual(Item.loadJSON(saved).dumpJSON(), saved);
+    Assert.deepEqual(Item.loadJSON(saved).json(), json);
 
     done();
   },
@@ -52,7 +53,7 @@ module.exports = {
         saved;
 
     Assert.deepEqual(item.json(), { username: 'sam', password: 'iam' });
-    Assert.deepEqual(saved = item.dumpJSON(), { username: {"string": "sam"}, password: {"string": "iam"}});
+    Assert.deepEqual(saved = item.dumpJSON(), { username: "sam", password: {"string": "iam"}});
     Assert.deepEqual(UserModel.loadJSON(saved).dumpJSON(), saved);
 
     done();
@@ -101,9 +102,9 @@ module.exports = {
         u1 = new User({ username: 'u1', password: 'p1' }),
         u2 = new User({ username: 'u2', password: 'p2' }),
         box = new Box({ value: u1, values: [item, u2], point: {x: "1", y: "2"} }),
-        saved;
+        json, saved;
 
-    Assert.deepEqual(box.json(), {
+    Assert.deepEqual(box.json(), json = {
       value: { 'UserModel': { username: 'u1', password: 'p1' } },
       values: [
         { 'SimpleItem': { name: 'alpha', quantity: 0 } },
@@ -113,15 +114,16 @@ module.exports = {
     });
 
     Assert.deepEqual(saved = box.dumpJSON(), {
-      value: { 'UserModel': { username: { string: 'u1' }, password: { string: 'p1' } } },
+      value: { 'UserModel': { username: 'u1', password: { string: 'p1' } } },
       values: { 'array': [
         { 'SimpleItem': { name: { string: 'alpha' }, quantity: { 'double': 0 } } },
-        { 'UserModel': { username: { string: 'u2' }, password: { string: 'p2' } } }
+        { 'UserModel': { username: 'u2', password: { string: 'p2' } } }
       ] },
       point: {'Box.point': {x: { string: '1' }, y: { string: '2' } } }
     });
 
     Assert.deepEqual(Box.loadJSON(saved).dumpJSON(), saved);
+    Assert.deepEqual(Box.loadJSON(saved).json(), json);
 
     done();
   },

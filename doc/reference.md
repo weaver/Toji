@@ -111,20 +111,20 @@ virtual property called `id`.
       ...
     });
 
-**Toji.Ref(type)**
+**Toji.ref(type)**
 
 Normally all fields values are embedded into a Toji document. Use
-`Toji.Ref()` to declare that a field should be a reference. The `type`
-argument can be any field type.
+`Toji.ref()` to declare that a field should be a reference. The `type`
+argument should be a Toji type.
 
     var Account = Toji.type('Account', {
       name: String,
-      friends: Toji.Ref([Account])
+      friends: [Toji.ref(Account)]
     });
 
     Account.find({ name: 'some-account-name' })
-      .with('friends')
-      .then(function(err, acct) {
+      .include('friends')
+      .all(function(err, acct) {
         if (err) throw err;
 	console.log('Friends of "%s": %j', acct.name, acct.friends);
       });

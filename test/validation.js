@@ -53,7 +53,7 @@ module.exports = {
 
     (new CustomItem({})).save(function(err, item) {
       Assert.ok(err);
-      Assert.equal(err.message, 'CustomItem: you gave me an empty value (data = undefined)');
+      Assert.equal(err.message, 'CustomItem: you gave me an empty value (data = {})');
       Assert.deepEqual(item.errors, {
         a: ['you gave me an empty value', 'even numbers only'],
         b: ['even numbers only']
