@@ -4,6 +4,11 @@ var Assert = require('assert'),
     Query = require('../lib/query'),
     db;
 
+var Data = Toji.type('ExampleData', {
+  name: Toji.ObjectId,
+  value: String
+});
+
 module.exports = {
   'open': function(done) {
     db = (new Storage.Storage('/tmp'))
@@ -13,12 +18,15 @@ module.exports = {
       });
   },
 
-  'load': function(done) {
-    var Data = Toji.type('ExampleData', {
-      name: Toji.ObjectId,
-      value: String
+  'find empty': function(done) {
+    db.find(Data, {}, function(err, results) {
+      Assert.ok(!err);
+      Assert.deepEqual(results, []);
+      done();
     });
+  },
 
+  'load': function(done) {
     db.load(loaded, [
       new Data({ name: 'alpha' }),
       new Data({ name: 'beta' }),
@@ -32,8 +40,6 @@ module.exports = {
   },
 
   'get': function(done) {
-    var Data = Toji.type('ExampleData');
-
     db.get('ExampleData/gamma', function(err, obj) {
       if (err) throw err;
       Assert.ok(obj instanceof Data);
@@ -43,8 +49,6 @@ module.exports = {
   },
 
   'find by id': function(done) {
-    var Data = Toji.type('ExampleData');
-
     db.find(Data, 'beta', function(err, data) {
       if (err) throw err;
       Assert.equal(data.name, 'beta');
@@ -53,8 +57,6 @@ module.exports = {
   },
 
   'find something undefined': function(done) {
-    var Data = Toji.type('ExampleData');
-
     db.find(Data, 'delta', function(err, data) {
       if (err) throw err;
       Assert.ok(!data);
@@ -63,8 +65,7 @@ module.exports = {
   },
 
   'find': function(done) {
-    var Data = Toji.type('ExampleData'),
-        query = db.find(Data, {});
+    var query = db.find(Data, {});
 
     Assert.ok(query instanceof Query.Query);
 
@@ -76,8 +77,6 @@ module.exports = {
   },
 
   'save': function(done) {
-    var Data = Toji.type('ExampleData');
-
     db.find(Data, 'alpha', function(err, data) {
       if (err) throw err;
       db.save(data.attr({ value: 'apple' }), verify);
@@ -94,8 +93,6 @@ module.exports = {
   },
 
   'remove': function(done) {
-    var Data = Toji.type('ExampleData');
-
     db.find(Data, 'beta', function(err, data) {
       if (err) throw err;
       db.remove(data, verify);

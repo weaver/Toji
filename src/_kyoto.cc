@@ -18,6 +18,9 @@ using namespace kyotocabinet;
 #define LNULL								\
   Local<Value>::New(Null())						\
 
+#define WRAP_STRING(str)                                                \
+  String::New(str.c_str(), str.length());                               \
+
 #define DEFINE_FUNC(Name, Request)					\
   static Handle<Value> Name(const Arguments& args) {			\
     HandleScope scope;							\
@@ -525,9 +528,7 @@ public:
   DEFINE_METHOD(Next, NextRequest)
   class NextRequest: public Request {
   private:
-    char* kbuf;
-    const char* vbuf;
-    size_t ksiz, vsiz;
+    std::string key, value;
 
   public:
 
@@ -539,9 +540,7 @@ public:
       Request(args, 0)
     {}
 
-    ~NextRequest() {
-      if (kbuf) delete[] kbuf;
-    }
+    ~NextRequest() {}
 
     inline int exec() {
       DB::Cursor* cursor = wrap->cursor;
@@ -555,8 +554,7 @@ public:
 	wrap->started = true;
       }
 
-      kbuf = cursor->get(&ksiz, &vbuf, &vsiz, true);
-      if (kbuf == NULL) {
+      if (!cursor->get(&key, &value, true)) {
 	PolyDB* db = static_cast<PolyDB *>(cursor->db());
 	result = db->error().code();
       }
@@ -564,12 +562,19 @@ public:
     }
 
     inline int after() {
-      int argc = 1;
+      int argc;
       Local<Value> argv[3];
 
-      argv[0] = (result == PolyDB::Error::NOREC) ? LNULL : error();
-      if (vbuf) argv[argc++] = String::New(vbuf, vsiz);
-      if (kbuf) argv[argc++] = String::New(kbuf, ksiz);
+      if (result == PolyDB::Error::SUCCESS) {
+	argc = 3;
+	argv[0] = LNULL;
+	argv[1] = WRAP_STRING(value);
+	argv[2] = WRAP_STRING(key);
+      }
+      else {
+	argc = 1;
+	argv[0] = (result == PolyDB::Error::NOREC) ? LNULL : error();
+      }
 
       callback(argc, argv);
       return 0;
