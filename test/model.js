@@ -190,6 +190,9 @@ module.exports = {
     var UserModel = Toji.type('UserModel');
 
     UserModel
+      .beforeValidation(function(obj, creating) {
+        obj.valid = creating;
+      })
       .beforeSave(function(obj, creating) {
         obj.before = creating;
       })
@@ -201,12 +204,14 @@ module.exports = {
       });
 
     var user = new UserModel({ username: 'john', password: 'secret' });
+    Assert.equal(user.valid, undefined);
     Assert.equal(user.before, undefined);
     Assert.equal(user.after, undefined);
     Assert.equal(user.load, undefined);
 
     user.save(function(err, created) {
       if (err) throw err;
+      Assert.equal(user.valid, true);
       Assert.equal(user.before, true);
       Assert.equal(user.after, true);
       Assert.equal(user.load, undefined);
@@ -215,12 +220,14 @@ module.exports = {
 
     function loaded(err, obj) {
       if (err) throw err;
+      Assert.equal(obj.valid, undefined);
       Assert.equal(obj.before, undefined);
       Assert.equal(obj.after, undefined);
       Assert.equal(obj.load, true);
 
       obj.attr({ password: 'changed' }).save(function(err) {
         if (err) throw err;
+        Assert.equal(obj.valid, false);
         Assert.equal(obj.before, false);
         Assert.equal(obj.after, false);
         Assert.equal(obj.load, true);
