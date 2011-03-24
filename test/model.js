@@ -243,7 +243,7 @@ module.exports = {
       a: Toji.field({ type: String }),
       b: Toji.field({ references: Item }),
       c: Toji.field({ type: [String] }),
-      d: Toji.field({ type: Item, readonly: true })
+      d: Toji.field({ type: Item, readable: false })
     });
 
     Assert.deepEqual(Special.__schema__, {
@@ -253,9 +253,35 @@ module.exports = {
         { name: 'a', type: ['string', 'null'] },
         { name: 'b', type: ['string', 'null'], references: 'SimpleItem' },
         { name: 'c', type: [{ type: 'array', items: 'string' }, 'null'] },
-        { name: 'd', type: ['SimpleItem', 'null'], readonly: true }
+        { name: 'd', type: ['SimpleItem', 'null'], readable: false }
       ]
     });
+
+    var item = new Item({ name: 'widget', quantity: 10 }),
+        obj = new Special({ a: 'apple', d: item });
+
+    Assert.deepEqual(obj.json(), { a: 'apple', b: null, c: null });
+
+    done();
+  },
+
+  'visibility': function(done) {
+    var Visible = Toji.type('FieldVisibility', {
+      a: Number,
+      b: Toji.field({ type: Number, 'protected': true }),
+      c: Toji.field({ type: Number, readable: false }),
+      d: Toji.field({ type: Number, writable: false })
+    });
+
+    var item = new Visible({ a: 1, b: 2, c: 3, d: 4 });
+    Assert.deepEqual(item.json(), { a: 1, d: null });
+    Assert.deepEqual(item.dumpJSON(), { a: { 'double': 1 }, b: null, c: { 'double': 3 }, d: null });
+
+    item = new Visible({ a: 1, b: 2, c: 3, d: 4 });
+    item.b = 5;
+    item.d = 6;
+    Assert.deepEqual(item.json(), { a: 1, d: 6 });
+    Assert.deepEqual(item.dumpJSON(), { a: { 'double': 1 }, b: { 'double': 5 }, c: { 'double': 3 }, d: { 'double': 6 } });
 
     done();
   }
