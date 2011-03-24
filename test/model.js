@@ -234,7 +234,30 @@ module.exports = {
         done();
       });
     }
+  },
 
+  'special fields': function(done) {
+    var Item = Toji.type('SimpleItem');
+
+    var Special = Toji.type('SpecialItem', {
+      a: Toji.field({ type: String }),
+      b: Toji.field({ references: Item }),
+      c: Toji.field({ type: [String] }),
+      d: Toji.field({ type: Item, readonly: true })
+    });
+
+    Assert.deepEqual(Special.__schema__, {
+      type: 'record',
+      name: 'SpecialItem',
+      fields: [
+        { name: 'a', type: ['string', 'null'] },
+        { name: 'b', type: ['string', 'null'], references: 'SimpleItem' },
+        { name: 'c', type: [{ type: 'array', items: 'string' }, 'null'] },
+        { name: 'd', type: ['SimpleItem', 'null'], readonly: true }
+      ]
+    });
+
+    done();
   }
 
 };
