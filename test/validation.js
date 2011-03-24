@@ -189,6 +189,57 @@ module.exports = {
         });
         done();
       });
+  },
+
+  'virtual': function(done) {
+    var VirtualItem = Toji.type('VirtualItem', {
+      name: Toji.ObjectId,
+      hashedPassword: Toji.field({ type: String, 'protected': true })
+    })
+    .validates('password', function(val) {
+      if (val && (val.length < 3))
+        throw 'too short';
+    })
+    .beforeSave(function(obj) {
+      if (obj.password)
+        obj.hashedPassword = require('crypto')
+          .createHash('sha1')
+          .update(obj.password)
+          .digest('hex');
+    });
+
+    (new VirtualItem({ name: 'me', password: 'secret' }))
+      .save(function(err, item) {
+        Assert.ok(!err);
+
+        Assert.deepEqual(item.dumpJSON(), {
+          name: 'me',
+          hashedPassword: { string: "e5e9fa1ba31ecd1ae84f75caaa474f3a663f05f4" }
+        });
+
+        Assert.deepEqual(item.json(), {
+          name: 'me'
+        });
+
+        lookup();
+      });
+
+    function lookup() {
+      VirtualItem.find('me', function(err, item) {
+        Assert.ok(!err);
+
+        Assert.deepEqual(item.dumpJSON(), {
+          name: 'me',
+          hashedPassword: { string: "e5e9fa1ba31ecd1ae84f75caaa474f3a663f05f4" }
+        });
+
+        Assert.deepEqual(item.json(), {
+          name: 'me'
+        });
+
+        done();
+      });
+    }
   }
 
 };
