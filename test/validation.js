@@ -1,10 +1,22 @@
 var Assert = require('assert'),
     Toji = require('../lib/index'),
-    db;
+    db, data;
+
+var ValidateData = Toji.type('ValidateData', {
+  value: String
+});
 
 module.exports = {
   'setup': function(done) {
-    db = Toji.open('/tmp', 'w+', done);
+    db = Toji.open('/tmp', 'w+', function(err) {
+      if (err) throw err;
+
+      (new ValidateData({ value: 'stuff' })).save(function(err, obj) {
+        if (err) throw err;
+        data = obj;
+        done();
+      });
+    });
   },
 
   'not empty': function(done) {
@@ -14,9 +26,10 @@ module.exports = {
       active: Boolean,
       tokens: Number,
       tags: [String],
+      profile: Toji.ref(ValidateData),
       fullName: String
     })
-    .validatesNotEmpty(['password', 'active', 'tokens', 'tags']);
+    .validatesNotEmpty(['password', 'active', 'tokens', 'tags', 'profile']);
 
     Assert.deepEqual(NotEmptyUser.__schema__, {
       type: 'record',
@@ -27,6 +40,7 @@ module.exports = {
         { type: 'boolean', name: 'active' },
         { type: 'double', name: 'tokens' },
         { type: { type: 'array', items: 'string' }, name: 'tags' },
+        { type: 'string', name: 'profile', references: 'ValidateData' },
         { type: ['string', 'null'], name: 'fullName' }
       ]
     });
@@ -40,7 +54,8 @@ module.exports = {
       password: 'b',
       active: false,
       tokens: 0,
-      tags: ['new']
+      tags: ['new'],
+      profile: data
     })).isValid());
 
     Assert.ok(!(user = new NotEmptyUser({ username: '', tags: [] })).isValid());
@@ -50,6 +65,7 @@ module.exports = {
       active: ['expected non-empty value'],
       tokens: ['expected non-empty value'],
       tags: ['expected non-empty value'],
+      profile: ['expected non-empty value'],
       username: ['missing required value']
     });
 
@@ -63,9 +79,10 @@ module.exports = {
       active: Boolean,
       tokens: Number,
       tags: [String],
+      profile: Toji.ref(ValidateData),
       fullName: String
     })
-    .validatesNotNull(['password', 'active', 'tokens', 'tags']);
+    .validatesNotNull(['password', 'active', 'tokens', 'tags', 'profile']);
 
     Assert.deepEqual(NotNullUser.__schema__, {
       type: 'record',
@@ -76,6 +93,7 @@ module.exports = {
         { type: 'boolean', name: 'active' },
         { type: 'double', name: 'tokens' },
         { type: { type: 'array', items: 'string' }, name: 'tags' },
+        { type: 'string', name: 'profile', references: 'ValidateData' },
         { type: ['string', 'null'], name: 'fullName' }
       ]
     });
@@ -89,7 +107,8 @@ module.exports = {
       password: 'b',
       active: false,
       tokens: 0,
-      tags: []
+      tags: [],
+      profile: data
     })).isValid());
 
     Assert.ok(!(user = new NotNullUser({ username: '' })).isValid());
@@ -99,6 +118,7 @@ module.exports = {
       active: ['expected non-null value'],
       tokens: ['expected non-null value'],
       tags: ['expected non-null value'],
+      profile: ['expected non-null value'],
       username: ['missing required value']
     });
 
