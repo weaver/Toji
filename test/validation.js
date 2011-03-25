@@ -208,6 +208,10 @@ module.exports = {
           .digest('hex');
     });
 
+    var item = new VirtualItem({ name: 'me', password: '42' });
+    Assert.ok(!item.isValid());
+    Assert.deepEqual(item.errors, { password: ['too short'] });
+
     (new VirtualItem({ name: 'me', password: 'secret' }))
       .save(function(err, item) {
         Assert.ok(!err);
