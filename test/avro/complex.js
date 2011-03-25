@@ -1,6 +1,6 @@
 var Assert = require('assert'),
-    Schema = require('../lib/avro/schema'),
-    Registry = require('../lib/avro/registry').Registry;
+    Schema = require('../../lib/avro/schema'),
+    Registry = require('../../lib/avro/registry').Registry;
 
 module.exports = {
   'simple array': function() {
@@ -102,6 +102,58 @@ module.exports = {
 
     invalid({}, B);
     invalid({ a: {} }, B);
+  },
+
+  'default values': function() {
+    var reg = new Registry(),
+        A = reg.define({
+          name: 'A',
+          type: 'record',
+          fields: [{ name: 'value', type: 'string' }]
+        }),
+        B = reg.define({
+          name: 'B',
+          type: 'record',
+          fields: [
+            { name: 'a', type: 'null', 'default': null },
+            { name: 'b', type: 'boolean', 'default': true },
+            { name: 'c', type: 'int', 'default': 42 },
+            { name: 'd', type: 'string', 'default': 'hello' },
+            { name: 'e', type: { type: 'array', items: 'string' }, 'default': ['alpha', 'beta'] },
+            { name: 'f', type: { type: 'array', items: 'A' }, 'default': [{ value: 'gamma' }, { value: 'delta' }] },
+            { name: 'g', type: { type: 'map', values: 'double' }, 'default': { a: 1, b: 2 } },
+            { name: 'h', type: { type: 'map', values: 'A' }, 'default': { a: { value: 'epsilon' } } },
+            { name: 'i', type: ['A', 'string'], 'default': { value: 'zeta' } },
+            { name: 'j', type: 'A', 'default': { value: 'eta' } }
+          ]
+        });
+
+    var item = new B({});
+
+    // Verify that copies were made.
+    item.e.push('theta');
+    item.g.c = 3;
+    Assert.deepEqual(B.schemaOf('e')['default'], ['alpha', 'beta']);
+    Assert.deepEqual(B.schemaOf('g')['default'], { a: 1, b: 2 });
+
+    // Verify that instances were made.
+    Assert.ok(item.f[0] instanceof A);
+    Assert.ok(item.h.a instanceof A);
+    Assert.ok(item.i instanceof A);
+    Assert.ok(item.j instanceof A);
+
+    Assert.deepEqual(item.exportJSON(), {
+      a: null,
+      b: true,
+      c: 42,
+      d: 'hello',
+      e: ['alpha', 'beta', 'theta'],
+      f: [{ value: 'gamma' }, { value: 'delta' }],
+      g: { a: 1, b: 2, c: 3 },
+      h: { a: { value: 'epsilon' } },
+      i: { A: { value: 'zeta' } },
+      j: { value: 'eta' }
+    });
   }
 
 };

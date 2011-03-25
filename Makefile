@@ -2,4 +2,4 @@ all:
 	node-waf configure build
 
 tests:
-	expresso test-avro/*.js -s test/*
+	expresso test/avro/*.js -s test/*.js

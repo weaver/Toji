@@ -1,6 +1,6 @@
 var Assert = require('assert'),
-    Schema = require('../lib/avro/schema'),
-    Registry = require('../lib/avro/registry').Registry;
+    Schema = require('../../lib/avro/schema'),
+    Registry = require('../../lib/avro/registry').Registry;
 
 module.exports = {
   'null': function() {

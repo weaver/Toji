@@ -1,6 +1,6 @@
 var Assert = require('assert'),
-    Type = require('../lib/avro/type'),
-    Schema = require('../lib/avro/schema');
+    Type = require('../../lib/avro/type'),
+    Schema = require('../../lib/avro/schema');
 
 Schema.createType({ name: 'A', type: 'record' }, A);
 function A() {}

@@ -214,7 +214,7 @@ module.exports = {
 
     (new VirtualItem({ name: 'me', password: 'secret' }))
       .save(function(err, item) {
-        Assert.ok(!err);
+        if (err) throw err;
 
         Assert.deepEqual(item.dumpJSON(), {
           name: 'me',
