@@ -137,6 +137,13 @@ module.exports = {
     }
   },
 
+  'synchronize': function(done) {
+    db.synchronize(function(err) {
+      if (err) throw err;
+      done();
+    });
+  },
+
   'close': function(done) {
     db.close(function(err) {
       if (err) throw err;
