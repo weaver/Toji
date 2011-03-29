@@ -107,6 +107,7 @@ public:
     NODE_SET_PROTOTYPE_METHOD(ctor, "replace", Replace);
     NODE_SET_PROTOTYPE_METHOD(ctor, "get", Get);
     NODE_SET_PROTOTYPE_METHOD(ctor, "remove", Remove);
+    NODE_SET_PROTOTYPE_METHOD(ctor, "synchronize", Synchronize);
 
     target->Set(String::NewSymbol("PolyDB"), ctor->GetFunction());
   }
@@ -406,6 +407,40 @@ public:
     inline int exec() {
       PolyDB* db = wrap->db;
       if (!db->remove(*key, key.length())) {
+	result = db->error().code();
+      }
+      return 0;
+    }
+
+    inline int after() {
+      Local<Value> argv[1] = { error() };
+      callback(1, argv);
+      return 0;
+    }
+  };
+
+  
+  // ### Synchronize ###
+
+  DEFINE_METHOD(Synchronize, SynchronizeRequest)
+  class SynchronizeRequest: public Request {
+  protected:
+    bool hard;
+
+  public:
+    inline static bool validate(const Arguments& args) {
+      return (args.Length() >= 1
+	      && args[0]->IsBoolean());
+    }
+
+    SynchronizeRequest(const Arguments& args):
+      Request(args, 1),
+      hard(args[0]->ToBoolean() == v8::True())
+    {}
+
+    inline int exec() {
+      PolyDB* db = wrap->db;
+      if (!db->synchronize(hard)) {
 	result = db->error().code();
       }
       return 0;

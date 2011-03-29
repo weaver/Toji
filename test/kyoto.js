@@ -5,7 +5,7 @@ var Assert = require('assert'),
 module.exports = {
 
   'open': function(done) {
-    Kyoto.open('/tmp/example.kct', 'w+', function(err) {
+    Kyoto.open('/tmp/data.kct', 'w+', function(err) {
       if (err) throw err;
       db = this;
       done();
@@ -68,6 +68,13 @@ module.exports = {
     db.remove('alpha', function(err) {
       if (err) throw err;
       allEqual(done, { beta: 'replaced two' });
+    });
+  },
+
+  'synchronize': function(done) {
+    db.synchronize(function(err) {
+      if (err) throw err;
+      done();
     });
   },
 
