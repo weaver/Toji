@@ -4,7 +4,7 @@ var Assert = require('assert'),
 
 module.exports = {
   'setup': function(done) {
-    db = Toji.open('/tmp', 'w+', done);
+    db = Toji.open('*memory*', done);
   },
 
   'simple type schema': function(done) {

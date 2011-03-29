@@ -149,5 +149,22 @@ module.exports = {
       if (err) throw err;
       done();
     });
+  },
+
+  'on memory': function(done) {
+    (new Storage.Storage('*memory*')).open(function(err) {
+      if (err) throw err;
+      done();
+    });
+  },
+
+  'tuning parameters': function(done) {
+    var db = (new Storage.Storage('/tmp#zcomp=gz')).open(function(err) {
+      if (err) throw err;
+      db.close(function(err) {
+        if (err) throw err;
+        done();
+      });
+    });
   }
 };

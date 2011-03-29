@@ -8,7 +8,7 @@ var ValidateData = Toji.type('ValidateData', {
 
 module.exports = {
   'setup': function(done) {
-    db = Toji.open('/tmp', 'w+', function(err) {
+    db = Toji.open('*memory*', function(err) {
       if (err) throw err;
 
       (new ValidateData({ value: 'stuff' })).save(function(err, obj) {

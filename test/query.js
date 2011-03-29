@@ -15,7 +15,7 @@ var Tree = Toji.type('QueryTree', {
 
 module.exports = {
   'setup': function(done) {
-    db = Toji.open('/tmp', 'w+', function(err) {
+    db = Toji.open('*memory*', function(err) {
       if (err) throw err;
       db.load(ready, [
         new Data({ name: 'alpha', value: 'apple' }),
