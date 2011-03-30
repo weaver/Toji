@@ -55,9 +55,39 @@ module.exports = {
   'everything': function(done) {
     Data.find({}).all(function(err, results) {
       if (err) throw err;
-      assertResults(results, ['alpha', 'beta', 'gamma', 'delta']);
+      assertResults(results, ['alpha', 'beta', 'delta', 'gamma']);
       done();
     });
+  },
+
+  'offset': function(done) {
+    Data.find({})
+      .offset(2)
+      .all(function(err, results) {
+        if (err) throw err;
+        assertResults(results, ['delta', 'gamma']);
+        done();
+      });
+  },
+
+  'limit': function(done) {
+    Data.find({})
+      .limit(2)
+      .all(function(err, results) {
+        if (err) throw err;
+        assertResults(results, ['alpha', 'beta']);
+        done();
+      });
+  },
+
+  'slice': function(done) {
+    Data.find({})
+      .slice(1, 3)
+      .all(function(err, results) {
+        if (err) throw err;
+        assertResults(results, ['beta', 'delta']);
+        done();
+      });
   },
 
   'by attribute': function(done) {
@@ -99,7 +129,7 @@ module.exports = {
       })
       .all(function(err, results) {
         if (err) throw err;
-        assertResults(results, ['alpha', 'gamma', 'delta']);
+        assertResults(results, ['alpha', 'delta', 'gamma']);
         done();
       });
   },
@@ -138,7 +168,5 @@ module.exports = {
 
 function assertResults(results, expect) {
   var names = results.map(function(o) { return o.name; });
-  names.sort();
-  expect.sort();
   Assert.deepEqual(names, expect);
 }
