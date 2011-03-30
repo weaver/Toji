@@ -130,7 +130,7 @@ argument should be a Toji type.
       .include('friends')
       .all(function(err, acct) {
         if (err) throw err;
-	console.log('Friends of "%s": %j', acct.name, acct.friends);
+        console.log('Friends of "%s": %j', acct.name, acct.friends);
       });
 
 **Toji.union(type, ...)**
@@ -168,7 +168,7 @@ is similar to:
 
     var Point = Toji.type('Rectange', {
       x: Number,
-      y: NUmber
+      y: Number
     });
 
     var Rectangle = Toji.type('Rectangle', {
