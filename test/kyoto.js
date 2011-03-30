@@ -1,6 +1,7 @@
 var Assert = require('assert'),
     Kyoto = require('../lib/kyoto'),
-    db;
+    U = require('../lib/util'),
+    db, cursor;
 
 module.exports = {
 
@@ -83,7 +84,171 @@ module.exports = {
       if (err) throw err;
       done();
     });
+  },
+
+  'cursor tests': function(done) {
+    db = Kyoto.open('+', 'w+', function(err) {
+      if (err) throw err;
+      load(done, {
+        'alpha': '1',
+        'apple': '2',
+        'api': '3',
+        'aardvark': '4',
+        'air': '5',
+        'active': '6',
+        'arrest': '7',
+        'allow': '8'
+      });
+    });
+  },
+
+  'cursor jump': function(done) {
+    (cursor = db.cursor()).jump(function(err) {
+      if (err) throw err;
+      done();
+    });
+  },
+
+  'cursor get': function(done) {
+    cursor.get(function(err, val, key) {
+      if (err) throw err;
+      Assert.equal(key, 'aardvark');
+      Assert.equal(val, '4');
+      getStep();
+    });
+
+    function getStep() {
+      cursor.get(true, function(err, val, key) {
+        if (err) throw err;
+        Assert.equal(key, 'aardvark');
+        getAgain();
+      });
+    }
+
+    function getAgain() {
+      cursor.get(function(err, val, key) {
+        if (err) throw err;
+        Assert.equal(key, 'active');
+        Assert.equal(val, '6');
+        done();
+      });
+    }
+  },
+
+  'cursor get key': function(done) {
+    cursor.jump(function(err) {
+      if (err) throw err;
+      cursor.getKey(gotFirst);
+    });
+
+    function gotFirst(err, key) {
+      if (err) throw err;
+      Assert.equal(key, 'aardvark');
+      cursor.getKey(true, gotAgain);
+    }
+
+    function gotAgain(err, key) {
+      if (err) throw err;
+      Assert.equal(key, 'aardvark');
+      cursor.getKey(gotStep);
+    }
+
+    function gotStep(err, key) {
+      if (err) throw err;
+      Assert.equal(key, 'active');
+      done();
+    }
+  },
+
+  'cursor get value': function(done) {
+    cursor.jump(function(err) {
+      if (err) throw err;
+      cursor.getValue(gotFirst);
+    });
+
+    function gotFirst(err, val) {
+      if (err) throw err;
+      Assert.equal(val, '4');
+      cursor.getValue(true, gotAgain);
+    }
+
+    function gotAgain(err, val) {
+      if (err) throw err;
+      Assert.equal(val, '4');
+      cursor.getValue(gotStep);
+    }
+
+    function gotStep(err, val) {
+      if (err) throw err;
+      Assert.equal(val, '6');
+      done();
+    }
+  },
+
+  'cursor jump back': function(done) {
+    cursor.jumpBack(function(err) {
+      if (err) throw err;
+      cursor.get(true, lastItem);
+    });
+
+    function lastItem(err, val, key) {
+      if (err) throw err;
+      Assert.equal(key, 'arrest');
+      Assert.equal(val, '7');
+      cursor.get(emptyItem);
+    }
+
+    function emptyItem(err, val, key) {
+      if (err) throw err;
+      Assert.equal(val, undefined);
+      done();
+    }
+  },
+
+  'cursor jump to': function(done) {
+    cursor.jump('ap', function(err) {
+      if (err) throw err;
+      cursor.getKey(getFirst);
+    });
+
+    function getFirst(err, key) {
+      if (err) throw err;
+      Assert.equal(key, 'api');
+      cursor.step(function(err) {
+        if (err) throw err;
+        cursor.getKey(getSecond);
+      });
+    }
+
+    function getSecond(err, key) {
+      if (err) throw err;
+      Assert.equal(key, 'apple');
+      done();
+    }
+  },
+
+  'cursor jump back to': function(done) {
+    cursor.jumpBack('alz', function(err) {
+      if (err) throw err;
+      cursor.getKey(getFirst);
+    });
+
+    function getFirst(err, key) {
+      if (err) throw err;
+      Assert.equal(key, 'alpha');
+      cursor.stepBack(function(err) {
+        if (err) throw err;
+        cursor.getKey(getSecond);
+      });
+    }
+
+    function getSecond(err, key) {
+      if (err) throw err;
+      Assert.equal(key, 'allow');
+      done();
+    }
   }
+
 };
 
 
@@ -101,4 +266,21 @@ function allEqual(done, expect) {
     Assert.deepEqual(expect, all);
     done();
   }
+}
+
+function load(done, data) {
+  U.aEach(data, done, function(val, key, next) {
+    db.set(key, val, next);
+  });
+}
+
+function showEach(done) {
+  cursor.get(true, function(err, val, key) {
+    if (err || !key)
+      done(err);
+    else {
+      console.log('show:', key, val);
+      showEach(done);
+    }
+  });
 }

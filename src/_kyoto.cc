@@ -21,6 +21,9 @@ using namespace kyotocabinet;
 #define WRAP_STRING(str)                                                \
   String::New(str.c_str(), str.length());                               \
 
+#define V8_TO_BOOL(obj)                                                 \
+  (obj->ToBoolean() == v8::True())                                      \
+
 #define DEFINE_FUNC(Name, Request)					\
   static Handle<Value> Name(const Arguments& args) {			\
     HandleScope scope;							\
@@ -455,10 +458,15 @@ public:
 
 };
 
+
+// # Cursor #
+
+#define CURSOR_ERROR(cursor)                                            \
+  static_cast<PolyDB *>(cursor->db())->error().code()                   \
+
 class CursorWrap: ObjectWrap {
 private:
   DB::Cursor* cursor;
-  bool started;
 
 public:
 
@@ -475,7 +483,15 @@ public:
     ctor->InstanceTemplate()->SetInternalFieldCount(1);
     ctor->SetClassName(String::NewSymbol("Cursor"));
 
-    NODE_SET_PROTOTYPE_METHOD(ctor, "next", Next);
+    NODE_SET_PROTOTYPE_METHOD(ctor, "get", Get);
+    NODE_SET_PROTOTYPE_METHOD(ctor, "getKey", GetKey);
+    NODE_SET_PROTOTYPE_METHOD(ctor, "getValue", GetValue);
+    NODE_SET_PROTOTYPE_METHOD(ctor, "jump", Jump);
+    NODE_SET_PROTOTYPE_METHOD(ctor, "jumpTo", JumpTo);
+    NODE_SET_PROTOTYPE_METHOD(ctor, "jumpBack", JumpBack);
+    NODE_SET_PROTOTYPE_METHOD(ctor, "jumpBackTo", JumpBackTo);
+    NODE_SET_PROTOTYPE_METHOD(ctor, "step", Step);
+    NODE_SET_PROTOTYPE_METHOD(ctor, "stepBack", StepBack);
 
     target->Set(String::NewSymbol("Cursor"), ctor->GetFunction());
   }
@@ -483,8 +499,7 @@ public:
   // ## Construction ##
 
   CursorWrap(DB::Cursor* cur):
-    cursor(cur),
-    started(false)
+    cursor(cur)
   {}
 
   ~CursorWrap() {
@@ -558,40 +573,31 @@ public:
   };
 
   
-  // ### Next ###
+  // ### Get ###
 
-  DEFINE_METHOD(Next, NextRequest)
-  class NextRequest: public Request {
+  DEFINE_METHOD(Get, GetRequest)
+  class GetRequest: public Request {
   private:
+    bool step;
     std::string key, value;
 
   public:
 
     inline static bool validate(const Arguments& args) {
-      return (args.Length() >= 1 && args[0]->IsFunction());
+      return (args.Length() >= 2
+	      && args[0]->IsBoolean()
+	      && args[1]->IsFunction());
     }
 
-    NextRequest(const Arguments& args):
-      Request(args, 0)
+    GetRequest(const Arguments& args):
+      Request(args, 1),
+      step(V8_TO_BOOL(args[0]))
     {}
-
-    ~NextRequest() {}
 
     inline int exec() {
       DB::Cursor* cursor = wrap->cursor;
-
-      if (!wrap->started) {
-	if (!cursor->jump()) {
-	  PolyDB* db = static_cast<PolyDB *>(cursor->db());
-	  result = db->error().code();
-	  return 0;
-	}
-	wrap->started = true;
-      }
-
-      if (!cursor->get(&key, &value, true)) {
-	PolyDB* db = static_cast<PolyDB *>(cursor->db());
-	result = db->error().code();
+      if (!cursor->get(&key, &value, step)) {
+	result = CURSOR_ERROR(cursor);
       }
       return 0;
     }
@@ -601,23 +607,238 @@ public:
       Local<Value> argv[3];
 
       if (result == PolyDB::Error::SUCCESS) {
-	argc = 3;
-	argv[0] = LNULL;
-	argv[1] = WRAP_STRING(value);
-	argv[2] = WRAP_STRING(key);
+  	argc = 3;
+  	argv[0] = LNULL;
+  	argv[1] = WRAP_STRING(value);
+  	argv[2] = WRAP_STRING(key);
       }
       else {
-	argc = 1;
-	argv[0] = (result == PolyDB::Error::NOREC) ? LNULL : error();
+  	argc = 1;
+  	argv[0] = (result == PolyDB::Error::NOREC) ? LNULL : error();
       }
 
       callback(argc, argv);
       return 0;
     }
+  };
 
+  
+  // ### Get Key ###
+
+  DEFINE_METHOD(GetKey, GetKeyRequest)
+  class GetKeyRequest: public Request {
+  protected:
+    bool step;
+    std::string value;
+
+  public:
+
+    inline static bool validate(const Arguments& args) {
+      return (args.Length() >= 2
+	      && args[0]->IsBoolean()
+	      && args[1]->IsFunction());
+    }
+
+    GetKeyRequest(const Arguments& args):
+      Request(args, 1),
+      step(V8_TO_BOOL(args[0]))
+    {}
+
+    inline int exec() {
+      DB::Cursor* cursor = wrap->cursor;
+      if (!cursor->get_key(&value, step)) {
+	result = CURSOR_ERROR(cursor);
+      }
+      return 0;
+    }
+
+    inline int after() {
+      int argc;
+      Local<Value> argv[2];
+
+      if (result == PolyDB::Error::SUCCESS) {
+  	argc = 2;
+  	argv[0] = LNULL;
+  	argv[1] = WRAP_STRING(value);
+      }
+      else {
+  	argc = 1;
+  	argv[0] = (result == PolyDB::Error::NOREC) ? LNULL : error();
+      }
+
+      callback(argc, argv);
+      return 0;
+    }
+  };
+
+  
+  // ### Get ###
+
+  DEFINE_METHOD(GetValue, GetValueRequest)
+  class GetValueRequest: public GetKeyRequest {
+  public:
+    GetValueRequest(const Arguments& args):
+      GetKeyRequest(args)
+    {}
+
+    inline int exec() {
+      DB::Cursor* cursor = wrap->cursor;
+      if (!cursor->get_value(&value, step)) {
+	result = CURSOR_ERROR(cursor);
+      }
+      return 0;
+    }
+  };
+
+  
+  // ### Jump ###
+
+  DEFINE_METHOD(Jump, JumpRequest)
+  class JumpRequest: public Request {
+
+  public:
+
+    inline static bool validate(const Arguments& args) {
+      return (args.Length() >= 1 && args[0]->IsFunction());
+    }
+
+    JumpRequest(const Arguments& args):
+      Request(args, 0)
+    {}
+
+    inline int exec() {
+      DB::Cursor* cursor = wrap->cursor;
+      if (!cursor->jump()) {
+	result = CURSOR_ERROR(cursor);
+      }
+      return 0;
+    }
+
+    inline int after() {
+      Local<Value> argv[1] = { error() };
+      callback(1, argv);
+      return 0;
+    }
+  };
+
+  DEFINE_METHOD(JumpTo, JumpToRequest)
+  class JumpToRequest: public Request {
+  protected:
+    String::Utf8Value key;
+
+  public:
+
+    inline static bool validate(const Arguments& args) {
+      return (args.Length() >= 2
+	      && args[0]->IsString()
+	      && args[1]->IsFunction());
+    }
+
+    JumpToRequest(const Arguments& args):
+      Request(args, 1),
+      key(args[0]->ToString())
+    {}
+
+    inline int exec() {
+      DB::Cursor* cursor = wrap->cursor;
+      if (!cursor->jump(*key, key.length())) {
+	result = CURSOR_ERROR(cursor);
+      }
+      return 0;
+    }
+
+    inline int after() {
+      Local<Value> argv[1] = { error() };
+      callback(1, argv);
+      return 0;
+    }
+  };
+
+  
+  // ### Jump Back ###
+
+  DEFINE_METHOD(JumpBack, JumpBackRequest)
+  class JumpBackRequest: public JumpRequest {
+
+  public:
+
+    JumpBackRequest(const Arguments& args):
+      JumpRequest(args)
+    {}
+
+    inline int exec() {
+      DB::Cursor* cursor = wrap->cursor;
+      if (!cursor->jump_back()) {
+	result = CURSOR_ERROR(cursor);
+      }
+      return 0;
+    }
+  };
+
+  DEFINE_METHOD(JumpBackTo, JumpBackToRequest)
+  class JumpBackToRequest: public JumpToRequest {
+
+  public:
+
+    JumpBackToRequest(const Arguments& args):
+      JumpToRequest(args)
+    {}
+
+    inline int exec() {
+      DB::Cursor* cursor = wrap->cursor;
+      if (!cursor->jump_back(*key, key.length())) {
+	result = CURSOR_ERROR(cursor);
+      }
+      return 0;
+    }
+  };
+
+  
+  // ### Step ###
+
+  DEFINE_METHOD(Step, StepRequest)
+  class StepRequest: public JumpRequest {
+
+  public:
+
+    StepRequest(const Arguments& args):
+      JumpRequest(args)
+    {}
+
+    inline int exec() {
+      DB::Cursor* cursor = wrap->cursor;
+      if (!cursor->step()) {
+	result = CURSOR_ERROR(cursor);
+      }
+      return 0;
+    }
+  };
+
+  
+  // ### Step Back ###
+
+  DEFINE_METHOD(StepBack, StepBackRequest)
+  class StepBackRequest: public JumpRequest {
+
+  public:
+
+    StepBackRequest(const Arguments& args):
+      JumpRequest(args)
+    {}
+
+    inline int exec() {
+      DB::Cursor* cursor = wrap->cursor;
+      if (!cursor->step_back()) {
+	result = CURSOR_ERROR(cursor);
+      }
+      return 0;
+    }
   };
 
 };
+
+
+// ## Init ##
 
 Persistent<FunctionTemplate> PolyDBWrap::ctor;
 Persistent<FunctionTemplate> CursorWrap::ctor;
