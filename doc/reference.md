@@ -47,7 +47,7 @@ Lookup a type by name. If the type doesn't exit, an `Error` is thrown.
 
 Create a new type called `name`. The `fields` object maps field names
 to types. By default, field values are embedded into documents. Use
-`Toji.Ref()` to create a reference instead.
+`Toji.ref()` to create a reference instead.
 
     var Item = Toji.type('Item', {
       quantity: 'int',
@@ -56,7 +56,7 @@ to types. By default, field values are embedded into documents. Use
     });
 
     var Cart = Toji.type('Cart', {
-      owner: Toji.Ref(Person),
+      owner: Toji.ref(Person),
       items: [Item]
     });
 
@@ -69,6 +69,10 @@ name can be used to make self-referencial types. For example:
       body: String,
       replies: ['Comment']
     });
+
+### Fields ###
+
+TODO: describe `Toji.field()`
 
 ### Primitive Types ###
 
@@ -129,8 +133,56 @@ argument should be a Toji type.
 	console.log('Friends of "%s": %j', acct.name, acct.friends);
       });
 
-## Storage ##
+**Toji.union(type, ...)**
 
+Allow a field to accept multiple types.
+
+    var Box = Toji.type('Box', {
+      value: Toji.union(User, Account);
+    });
+
+### Compound Types ###
+
+Toji supports embedded data.
+
+**[type]**
+
+A field can hold an array of values. Declare this with an array
+literal containing a single type.
+
+    var Item = Toji.type('Item', {
+      tags: [String]
+    });
+
+**{ field: type, ...}**
+
+Declare an anonymous, embedded type using an object literal with field
+declarations. For example, this:
+
+    var Shape = Toji.type('Rectangle', {
+      topLeft: { x: Number, y: Number },
+      bottomRight: { x: Number, y: Number }
+    });
+
+is similar to:
+
+    var Point = Toji.type('Rectange', {
+      x: Number,
+      y: NUmber
+    });
+
+    var Rectangle = Toji.type('Rectangle', {
+      topLeft: Point,
+      bottomRight: Point
+    });
+
+### Type Methods ###
+
+### Instance Methods ###
+
+## Queries ##
+
+## Storage ##
 
 [1]: http://avro.apache.org/docs/current/spec.html
 [2]: http://fallabs.com/kyotocabinet/spex.html
