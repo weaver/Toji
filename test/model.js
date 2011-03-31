@@ -186,6 +186,22 @@ module.exports = {
     }
   },
 
+  'self-referencing refs': function(done) {
+    var MySelf = Toji.type('MySelf', {
+      me: Toji.ref('MySelf')
+    });
+
+    Assert.deepEqual(MySelf.__schema__, {
+      type: 'record',
+      name: 'MySelf',
+      fields: [
+        { type: ['string', 'null'], name: 'me', references: 'MySelf' }
+      ]
+    });
+
+    done();
+  },
+
   'triggers': function(done) {
     var UserModel = Toji.type('UserModel');
 
