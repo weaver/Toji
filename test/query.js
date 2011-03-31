@@ -14,14 +14,14 @@ var Tree = Toji.type('QueryTree', {
 });
 
 module.exports = {
-  'setup': function(done) {
+  'open': function(done) {
     db = Toji.open('*memory*', function(err) {
       if (err) throw err;
       db.load(ready, [
-        new Data({ name: 'alpha', value: 'apple' }),
-        new Data({ name: 'beta', value: 'banana' }),
-        new Data({ name: 'gamma', value: 'grape' }),
-        new Data({ name: 'delta', value: 'durian' })
+        new Data({ name: 'alpha', value: 'one' }),
+        new Data({ name: 'beta', value: 'two' }),
+        new Data({ name: 'gamma', value: 'three' }),
+        new Data({ name: 'delta', value: 'four' })
       ]);
     });
 
@@ -91,14 +91,14 @@ module.exports = {
   },
 
   'by attribute': function(done) {
-    Data.find({ value: 'grape' }).all(function(err, results) {
+    Data.find({ value: 'three' }).all(function(err, results) {
       if (err) throw err;
       assertResults(results, ['gamma']);
       several();
     });
 
     function several() {
-      Data.find({ name: 'delta', value: 'durian' }).all(function(err, results) {
+      Data.find({ name: 'delta', value: 'four' }).all(function(err, results) {
         if (err) throw err;
         assertResults(results, ['delta']);
         nothing();
@@ -106,7 +106,7 @@ module.exports = {
     }
 
     function nothing() {
-      Data.find({ name: 'gamma', value: 'apple' }).all(function(err, results) {
+      Data.find({ name: 'gamma', value: 'four' }).all(function(err, results) {
         if (err) throw err;
         Assert.equal(results.length, 0);
         done();
@@ -115,9 +115,9 @@ module.exports = {
   },
 
   'using RegExp': function(done) {
-    Data.find({ value: /ap/ }).all(function(err, results) {
+    Data.find({ value: /^t/ }).all(function(err, results) {
       if (err) throw err;
-      assertResults(results, ['alpha', 'gamma']);
+      assertResults(results, ['beta', 'gamma']);
       done();
     });
   },
@@ -130,6 +130,26 @@ module.exports = {
       .all(function(err, results) {
         if (err) throw err;
         assertResults(results, ['alpha', 'delta', 'gamma']);
+        done();
+      });
+  },
+
+  'order ascending': function(done) {
+    Data.find({})
+      .order('value')
+      .all(function(err, results) {
+        if (err) throw err;
+        assertResults(results, ['delta', 'alpha', 'gamma', 'beta']);
+        done();
+      });
+  },
+
+  'order descending': function(done) {
+    Data.find({})
+      .order('-value')
+      .all(function(err, results) {
+        if (err) throw err;
+        assertResults(results, ['beta', 'gamma', 'alpha', 'delta']);
         done();
       });
   },
@@ -163,6 +183,21 @@ module.exports = {
           done();
         });
     }
+  },
+
+  'full stack': function(done) {
+    Tree.find({})
+      .order('self')
+      .slice(0, 1)
+      .include('self', 'children')
+      .all(function(err, results) {
+        if (err) throw err;
+        Assert.equal(results.length, 1);
+        Assert.ok(results[0].self instanceof Data);
+        Assert.equal(results[0].children.length, 3);
+        Assert.ok(results[0].children[0] instanceof Data);
+        done();
+      });
   }
 };
 
