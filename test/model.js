@@ -252,6 +252,48 @@ module.exports = {
     }
   },
 
+  'async triggers': function(done) {
+    var Stats = Toji.type('StatsModel', {
+      count: Number
+    });
+
+    var Datum = Toji.type('DatumModel', {
+      value: String,
+      stats: Toji.ref(Stats)
+    });
+
+    Datum.afterSave(function(obj, created, next) {
+      obj.include('stats', function(err) {
+        if (err)
+          next(err);
+        else {
+          obj.stats.count++;
+          obj.stats.save(next);
+        }
+      });
+    });
+
+    var stats = new Stats({ count: 0 });
+    stats.save(addDatum);
+
+    function addDatum(err) {
+      if (err) throw err;
+      var datum = new Datum({ value: 'example', stats: stats });
+      datum.save(savedDatum);
+    }
+
+    function savedDatum(err) {
+      if (err) throw err;
+      Stats.find(stats.id, examineStats);
+    }
+
+    function examineStats(err, obj) {
+      if (err) throw err;
+      Assert.equal(obj.count, 1);
+      done();
+    }
+  },
+
   'special fields': function(done) {
     var Item = Toji.type('SimpleItem');
 
