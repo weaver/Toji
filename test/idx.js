@@ -16,10 +16,12 @@ var IndexTree = Toji.type('IndexTree', {
   parent: Toji.ref('IndexTree'),
   value: String
 })
-.addIndex('group')
 .beforeSave(function(obj, creating) {
-  if (creating && !obj.group && obj.parent)
-    obj.group = (obj.parent.group || obj.parent);
+  if (creating && obj.parent)
+    obj.group = obj.parent.group || obj.parent;
+})
+.addIndex('group', function(obj) {
+  return obj.group || obj;
 });
 
 module.exports = {
@@ -241,6 +243,7 @@ module.exports = {
       if (err) throw err;
 
       Assert.deepEqual(state, {
+        '#IndexTree.group{a}IndexTree/a': 'IndexTree/a',
         '#IndexTree.group{a}IndexTree/b': 'IndexTree/b',
         '#IndexTree.group{a}IndexTree/c': 'IndexTree/c',
         '#IndexTree.group{a}IndexTree/d': 'IndexTree/d'
