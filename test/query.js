@@ -1,10 +1,12 @@
 var Assert = require('assert'),
     Toji = require('../lib/index'),
     Query = require('../lib/query'),
+    U = require('../lib/util'),
     db;
 
 var Data = Toji.type('QueryData', {
   name: Toji.ObjectId,
+  when: Date,
   value: String
 });
 
@@ -18,10 +20,10 @@ module.exports = {
     db = Toji.open('*memory*', function(err) {
       if (err) throw err;
       db.load(ready, [
-        new Data({ name: 'alpha', value: 'one' }),
-        new Data({ name: 'beta', value: 'two' }),
-        new Data({ name: 'gamma', value: 'three' }),
-        new Data({ name: 'delta', value: 'four' })
+        new Data({ name: 'alpha', when: 'Jan 1 1999 GMT', value: 'one' }),
+        new Data({ name: 'beta', when: 'Jan 2 1999 GMT', value: 'two' }),
+        new Data({ name: 'gamma', when: 'Jan 3 1999 GMT', value: 'three' }),
+        new Data({ name: 'delta', when: 'Jan 4 1999 GMT', value: 'four' })
       ]);
     });
 
@@ -58,6 +60,33 @@ module.exports = {
       assertResults(results, ['alpha', 'beta', 'delta', 'gamma']);
       done();
     });
+  },
+
+  'everything as json': function(done) {
+    Data.find({})
+      .json()
+      .all(function(err, data) {
+        if (err) throw err;
+
+        Assert.deepEqual(data, [
+          { name: 'alpha', when: 'Fri, 01 Jan 1999 00:00:00 GMT', value: 'one' },
+          { name: 'beta', when: 'Sat, 02 Jan 1999 00:00:00 GMT', value: 'two' },
+          { name: 'delta', when: 'Mon, 04 Jan 1999 00:00:00 GMT', value: 'four' },
+          { name: 'gamma', when: 'Sun, 03 Jan 1999 00:00:00 GMT', value: 'three' }
+        ]);
+
+        done();
+      });
+  },
+
+  'one item as json': function(done) {
+    Data.find({})
+      .json()
+      .one(function(err, data) {
+        if (err) throw err;
+        Assert.deepEqual(data, { name: 'alpha', when: 'Fri, 01 Jan 1999 00:00:00 GMT', value: 'one' });
+        done();
+      });
   },
 
   'offset': function(done) {
@@ -202,6 +231,17 @@ module.exports = {
 };
 
 function assertResults(results, expect) {
-  var names = results.map(function(o) { return o.name; });
+  var names = results.map(function(o) {
+    Assert.ok(o instanceof Data);
+    return o.name;
+  });
+  Assert.deepEqual(names, expect);
+}
+
+function assertJSONResults(results, expect) {
+  var names = results.map(function(o) {
+    Assert.ok(U.isJSONValue(o));
+    return o.name;
+  });
   Assert.deepEqual(names, expect);
 }
