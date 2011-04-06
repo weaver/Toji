@@ -10,20 +10,43 @@ var IndexData = Toji.type('IndexData', {
 })
 .validatesUniquenessOf(['letter', 'number'], "oops, it's already taken");
 
+var IndexTree = Toji.type('IndexTree', {
+  id: Toji.ObjectId,
+  group: Toji.ref('IndexTree'),
+  parent: Toji.ref('IndexTree'),
+  value: String
+})
+.addIndex('group')
+.beforeSave(function(obj, creating) {
+  if (creating && !obj.group && obj.parent)
+    obj.group = (obj.parent.group || obj.parent);
+});
+
 module.exports = {
   'setup': function(done) {
     db = Toji.open('*memory*', function(err) {
       if (err) throw err;
-      db.load(done, [
+
+      db.load(makeTree, [
         new IndexData({ id: 'a', letter: 'alpha', number: 1 }),
         new IndexData({ id: 'b', letter: 'beta', number: 2 }),
         new IndexData({ id: 'c', letter: 'gamma', number: 3 })
       ]);
+
+      function makeTree(parent) {
+        var root, mid;
+        db.load(done, [
+          root = (new IndexTree({ id: 'a', value: 'top-level' })),
+          mid = new IndexTree({ id: 'b', value: 'mid-level', parent: root }),
+          new IndexTree({ id: 'c', value: 'mid-leaf', parent: root }),
+          new IndexTree({ id: 'd', value: 'leaf', parent: mid })
+        ]);
+      }
     });
   },
 
-  'indexes look like this': function(done) {
-    indexState(function(err, state) {
+  'unique indexes look like this': function(done) {
+    indexState(IndexData, function(err, state) {
       if (err) throw err;
 
       Assert.deepEqual(state, {
@@ -74,7 +97,7 @@ module.exports = {
       });
 
     function verify() {
-      indexState(function(err, state) {
+      indexState(IndexData, function(err, state) {
         if (err) throw err;
 
         Assert.deepEqual(state, {
@@ -103,7 +126,7 @@ module.exports = {
     });
 
     function verify() {
-      indexState(function(err, state) {
+      indexState(IndexData, function(err, state) {
         if (err) throw err;
 
         Assert.deepEqual(state, {
@@ -120,7 +143,7 @@ module.exports = {
     }
   },
 
-  'otherwise, updating works': function(done) {
+  'updating keeps unique indicies in sync': function(done) {
     IndexData.find({ letter: 'alpha' }).one(function(err, alpha) {
       if (err) throw err;
       Assert.ok(alpha);
@@ -131,7 +154,7 @@ module.exports = {
     });
 
     function verify() {
-      indexState(function(err, state) {
+      indexState(IndexData, function(err, state) {
         if (err) throw err;
 
         Assert.deepEqual(state, {
@@ -148,7 +171,7 @@ module.exports = {
     }
   },
 
-  'removing cleans up indicies': function(done) {
+  'removing cleans up unique indicies': function(done) {
     IndexData.find({ letter: 'alpha' }).one(function(err, alpha) {
       if (err) throw err;
       alpha.remove(verify);
@@ -157,7 +180,7 @@ module.exports = {
     function verify(err) {
       if (err) throw err;
 
-      indexState(function(err, state) {
+      indexState(IndexData, function(err, state) {
         if (err) throw err;
 
         Assert.deepEqual(state, {
@@ -211,20 +234,41 @@ module.exports = {
       Assert.deepEqual(seq, [1, 2, 3]);
       done();
     }
-  }
+  },
 
+  'plain indexes look like this': function(done) {
+    indexState(IndexTree, function(err, state) {
+      if (err) throw err;
+
+      Assert.deepEqual(state, {
+        '#IndexTree.group{a}IndexTree/b': 'IndexTree/b',
+        '#IndexTree.group{a}IndexTree/c': 'IndexTree/c',
+        '#IndexTree.group{a}IndexTree/d': 'IndexTree/d'
+      });
+
+      done();
+    });
+  }
 };
 
 
 // ## Helpers ##
 
-function indexState(next) {
-  IndexData.getUniqueIndex('letter').all(db, function(err, letter) {
-    if (err)
-      next(err);
-    else
-      IndexData.getUniqueIndex('number').all(db, function(err, number) {
-        err ? next(err) : next(null, U.extend(letter, number));
-      });
+function indexState(type, done) {
+  var state = {};
+
+  U.aEach(type.indicies.indicies, finished, function(idx, _, next) {
+    idx.all(db, function(err, values) {
+      if (err)
+        next(err);
+      else {
+        U.extend(state, values);
+        next();
+      }
+    });
   });
+
+  function finished(err) {
+    done(err, state);
+  }
 }
