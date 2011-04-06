@@ -61,6 +61,70 @@ using namespace kyotocabinet;
   DEFINE_EXEC(Name, Request)						\
   DEFINE_AFTER(Name, Request)
 
+
+// ## Maps and Lists
+
+typedef std::vector<std::string> StringList;
+typedef std::map<std::string, std::string> StringMap;
+typedef pair<std::string, std::string> MapItem;
+typedef StringMap::const_iterator MapIterator;
+
+void ObjToMap(const Local<Value> value, StringMap &result) {
+  HandleScope scope;
+
+  Local<Object> obj = Local<Object>::Cast(value);
+  Local<Array> names = obj->GetPropertyNames();
+  int names_len = names->Length();
+
+  for (int i = 0; i < names_len; i++) {
+    Local<Value> name = names->Get(Integer::New(i));
+    String::Utf8Value key(name);
+    String::Utf8Value val(obj->Get(name)->ToString());
+    std::string std_key = std::string(*key, key.length());
+    std::string std_val = std::string(*val, val.length());
+    result.insert(MapItem(std_key, std_val));
+  }
+}
+
+Local<Object> MapToObj(StringMap &map) {
+  HandleScope scope;
+
+  MapIterator item = map.begin();
+  MapIterator end = map.end();
+
+
+  Local<Object> result = Object::New();
+  while (item != end) {
+    Local<String> key = String::New(item->first.c_str(), item->first.length());
+    Local<String> val = String::New(item->second.c_str(), item->second.length());
+    result->Set(key, val);
+    ++item;
+  }
+
+  return scope.Close(result);
+}
+
+void MapKeys(const StringMap &map, StringList &keys) {
+  keys.reserve(map.size());
+  MapIterator item = map.begin();
+  MapIterator end = map.end();
+  while(item != end) {
+    keys.push_back(item->first);
+    ++item;
+  }
+}
+
+void ArrayToList(const Local<Value> obj, StringList &result) {
+  HandleScope scope;
+
+  Local<Array> array = Local<Array>::Cast(obj);
+  int alen = array->Length();
+  for (int i = 0; i < alen; i++) {
+    String::Utf8Value val(array->Get(Integer::New(i))->ToString());
+    result.push_back(std::string(*val, val.length()));
+  }
+}
+
 class PolyDBWrap: ObjectWrap {
 private:
   PolyDB* db;
@@ -109,8 +173,14 @@ public:
     NODE_SET_PROTOTYPE_METHOD(ctor, "add", Add);
     NODE_SET_PROTOTYPE_METHOD(ctor, "replace", Replace);
     NODE_SET_PROTOTYPE_METHOD(ctor, "get", Get);
+    NODE_SET_PROTOTYPE_METHOD(ctor, "getBulk", GetBulk);
     NODE_SET_PROTOTYPE_METHOD(ctor, "remove", Remove);
     NODE_SET_PROTOTYPE_METHOD(ctor, "synchronize", Synchronize);
+
+    // Here are some non-standard methods.
+    NODE_SET_PROTOTYPE_METHOD(ctor, "addIndexed", AddIndexed);
+    NODE_SET_PROTOTYPE_METHOD(ctor, "replaceIndexed", ReplaceIndexed);
+    NODE_SET_PROTOTYPE_METHOD(ctor, "removeIndexed", RemoveIndexed);
 
     target->Set(String::NewSymbol("PolyDB"), ctor->GetFunction());
   }
@@ -166,6 +236,10 @@ public:
       wrap->Unref();
       next.Dispose();
     }
+
+    virtual inline int exec() = 0;
+
+    virtual inline int after() = 0;
 
     inline void callback(int argc, Handle<Value> argv[]) {
       TryCatch try_catch;
@@ -389,6 +463,47 @@ public:
   };
 
   
+  // ### GetBulk ###
+
+  DEFINE_METHOD(GetBulk, GetBulkRequest)
+  class GetBulkRequest: public Request {
+  protected:
+    StringList keys;
+    StringMap items;
+    bool atomic;
+
+  public:
+    inline static bool validate(const Arguments& args) {
+      return (args.Length() >= 3
+	      && args[0]->IsArray()
+	      && args[1]->IsBoolean()
+	      && args[2]->IsFunction());
+    }
+
+    GetBulkRequest(const Arguments& args):
+      Request(args, 2),
+      atomic(V8_TO_BOOL(args[1]))
+    {
+      ArrayToList(args[0], keys);
+    }
+
+    inline int exec() {
+      PolyDB* db = wrap->db;
+      if (db->get_bulk(keys, &items, atomic) == -1) {
+	result = db->error().code();
+      }
+      return 0;
+    }
+
+    inline int after() {
+      int argc = 2;
+      Local<Value> argv[2] = { error(), MapToObj(items) };
+      callback(argc, argv);
+      return 0;
+    }
+  };
+
+  
   // ### Remove ###
 
   DEFINE_METHOD(Remove, RemoveRequest)
@@ -453,6 +568,279 @@ public:
       Local<Value> argv[1] = { error() };
       callback(1, argv);
       return 0;
+    }
+  };
+
+  
+  // ### AddIndexed ###
+
+  class ApplyIndexVisitor : public DB::Visitor {
+  public:
+    String::Utf8Value& key;
+    const StringMap& index;
+    StringMap& errors;
+
+    explicit ApplyIndexVisitor(String::Utf8Value &key, const StringMap& index, StringMap& errors) :
+      key(key),
+      index(index),
+      errors(errors)
+    {}
+
+  private:
+    const char* visit_full(const char* kbuf, size_t ksiz,
+			   const char* vbuf, size_t vsiz,
+			   size_t *sp)
+    {
+      MapIterator probe = index.find(std::string(kbuf, ksiz));
+
+      // It's an error for an index entry to exist with any other
+      // value than the value it's supposed to be.
+      if (probe != index.end() && probe->second.compare(vbuf) != 0) {
+	errors.insert(MapItem(probe->first, std::string(vbuf, vsiz)));
+      }
+
+      return NOP;
+    }
+
+    const char* visit_empty(const char* kbuf, size_t ksiz,
+			    size_t *sp)
+    {
+      MapIterator probe = index.find(std::string(kbuf, ksiz));
+      if (probe == index.end()) {
+	return NOP;
+      }
+
+      *sp = probe->second.size();
+      return probe->second.data();
+    }
+  };
+
+  class RemoveIndexVisitor : public DB::Visitor {
+  public:
+    String::Utf8Value& key;
+    StringMap& errors;
+
+    explicit RemoveIndexVisitor(String::Utf8Value &key, StringMap& errors) :
+      key(key),
+      errors(errors)
+    {}
+
+  private:
+    const char* visit_full(const char* kbuf, size_t ksiz,
+			   const char* vbuf, size_t vsiz,
+			   size_t *sp)
+    {
+      // It's an error to remove an index entry when it doesn't
+      // point to this object.
+      if ((size_t)key.length() != vsiz || strncmp(*key, vbuf, vsiz) != 0) {
+	errors.insert(MapItem(std::string(kbuf, ksiz), std::string(vbuf, vsiz)));
+	return NOP;
+      }
+      return REMOVE;
+    }
+  };
+
+  class IndexedRequest: public Request {
+  private:
+    Persistent<String> invalid_symbol;
+
+  protected:
+    String::Utf8Value key;
+
+    StringMap toIndex;
+    StringList toRemove;
+    StringMap errors;
+
+  public:
+
+    IndexedRequest(const Arguments &args, int nextIndex) :
+      Request(args, nextIndex),
+      key(args[0]->ToString())
+    {}
+
+    virtual bool main_operation() = 0;
+
+    inline bool apply_index() {
+      PolyDB* db = wrap->db;
+
+      std::vector<std::string> keys;
+      MapKeys(toIndex, keys);
+
+      ApplyIndexVisitor visitor(key, toIndex, errors);
+      int written = db->accept_bulk(keys, &visitor, true);
+
+      return (written != -1) && errors.empty();
+    }
+
+    bool cleanup() {
+      PolyDB* db = wrap->db;
+
+      RemoveIndexVisitor visitor(key, errors);
+      int written = db->accept_bulk(toRemove, &visitor, true);
+
+      return (written != -1) && errors.empty();
+    }
+
+    inline int exec() {
+      // Fast path: nothing to index, just run the main op.
+      if (toIndex.empty() && toRemove.empty()) {
+	if (!main_operation()) {
+	  result = wrap->db->error().code();
+	}
+	return 0;
+      }
+
+      // Long path: run full transaction, update indicies.
+      return transaction();
+    }
+
+    inline int transaction() {
+      PolyDB* db = wrap->db;
+
+      if (!db->begin_transaction()) {
+	result = db->error().code();
+	return 0;
+      }
+
+      if (!main_operation()) {
+	result = db->error().code();
+	db->end_transaction();
+	return 0;
+      }
+
+      if (!toIndex.empty()) {
+	if (!apply_index()) {
+	  result = db->error().code();
+	  db->end_transaction();
+	  return 0;
+	}
+      }
+
+      if (!toRemove.empty()) {
+	if (!cleanup()) {
+	  result = db->error().code();
+	  db->end_transaction();
+	  return 0;
+	}
+      }
+
+      if (!db->end_transaction(true)) {
+	result = db->error().code();
+      }
+
+      return 0;
+    }
+
+    Local<Value> error() {
+      Local<Value> err = Request::error();
+
+      if (!errors.empty()) {
+	if (err->IsNull()) {
+	  err = Exception::Error(String::NewSymbol("index-error"));
+	}
+
+	if (invalid_symbol.IsEmpty()) {
+	  invalid_symbol = NODE_PSYMBOL("invalid");
+	}
+
+	Local<Object> obj = err->ToObject();
+	obj->Set(invalid_symbol, MapToObj(errors));
+      }
+
+      return err;
+    }
+
+    inline int after() {
+      Local<Value> argv[1] = { error() };
+      callback(1, argv);
+      return 0;
+    }
+  };
+
+  DEFINE_METHOD(AddIndexed, AddIndexedRequest)
+  class AddIndexedRequest: virtual public IndexedRequest {
+  protected:
+    String::Utf8Value value;
+
+  public:
+
+    inline static bool validate(const Arguments& args) {
+      return (args.Length() >= 4
+	      && args[0]->IsString()
+	      && args[1]->IsString()
+	      && (args[2]->IsObject() || args[2]->IsNull())
+	      && args[3]->IsFunction());
+    }
+
+    AddIndexedRequest(const Arguments& args):
+      IndexedRequest(args, 3),
+      value(args[1]->ToString())
+    {
+      if (!args[2]->IsNull()) {
+	ObjToMap(args[2], toIndex);
+      }
+    }
+
+    bool main_operation() {
+      PolyDB* db = wrap->db;
+      return db->add(*key, key.length(), *value, value.length());
+    }
+  };
+
+  DEFINE_METHOD(ReplaceIndexed, ReplaceIndexedRequest)
+  class ReplaceIndexedRequest: public IndexedRequest {
+  protected:
+    String::Utf8Value value;
+
+  public:
+    inline static bool validate(const Arguments& args) {
+      return (args.Length() >= 5
+	      && args[0]->IsString()
+	      && args[1]->IsString()
+	      && (args[2]->IsObject() || args[2]->IsNull())
+	      && (args[3]->IsArray() || args[3]->IsNull())
+	      && args[4]->IsFunction());
+    }
+
+    ReplaceIndexedRequest(const Arguments& args):
+      IndexedRequest(args, 4),
+      value(args[1]->ToString())
+    {
+      if (!args[2]->IsNull()) {
+	ObjToMap(args[2], toIndex);
+      }
+      if (!args[3]->IsNull()) {
+	ArrayToList(args[3], toRemove);
+      }
+    }
+
+    bool main_operation() {
+      PolyDB* db = wrap->db;
+      return db->replace(*key, key.length(), *value, value.length());
+    }
+  };
+
+  DEFINE_METHOD(RemoveIndexed, RemoveIndexedRequest)
+  class RemoveIndexedRequest: public IndexedRequest {
+  public:
+    inline static bool validate(const Arguments& args) {
+      return (args.Length() >= 3
+	      && args[0]->IsString()
+	      && (args[1]->IsArray() || args[1]->IsNull())
+	      && args[2]->IsFunction());
+    }
+
+    RemoveIndexedRequest(const Arguments& args):
+      IndexedRequest(args, 2)
+    {
+      if (!args[1]->IsNull()) {
+	ArrayToList(args[1], toRemove);
+      }
+    }
+
+    bool main_operation() {
+      PolyDB* db = wrap->db;
+      return db->remove(*key, key.length());
     }
   };
 

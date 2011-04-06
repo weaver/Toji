@@ -1,0 +1,3 @@
+[submodule "ext/js-lru"]
+	path = ext/js-lru
+	url = git://github.com/rsms/js-lru.git

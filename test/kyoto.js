@@ -65,6 +65,17 @@ module.exports = {
     });
   },
 
+  'get bulk': function(done) {
+    db.getBulk(['alpha', 'beta'], function(err, items) {
+      if (err) throw err;
+      Assert.deepEqual(items, {
+        alpha: 'changed one',
+        beta: 'replaced two'
+      });
+      done();
+    });
+  },
+
   'remove': function(done) {
     db.remove('alpha', function(err) {
       if (err) throw err;
