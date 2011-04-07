@@ -95,10 +95,10 @@ module.exports = {
           'letter': ["oops, it's already taken"],
           'number': ["oops, it's already taken"]
         });
-        verify();
+        verifyState();
       });
 
-    function verify() {
+    function verifyState() {
       indexState(IndexData, function(err, state) {
         if (err) throw err;
 
@@ -111,6 +111,17 @@ module.exports = {
           '%IndexData.number{3}': 'IndexData/c'
         });
 
+        verifyData();
+      });
+    }
+
+    function verifyData() {
+      IndexData.find({}).all(function(err, data) {
+        Assert.deepEqual(data, [
+          { id: 'a', letter: 'alpha', number: 1 },
+          { id: 'b', letter: 'beta', number: 2 },
+          { id: 'c', letter: 'gamma', number: 3 }
+        ]);
         done();
       });
     }
@@ -123,11 +134,11 @@ module.exports = {
       alpha.attr({ letter: 'gamma' }).save(function(err) {
         Assert.ok(err);
         Assert.deepEqual(alpha.errors, { letter: ["oops, it's already taken"] });
-        verify();
+        verifyState();
       });
     });
 
-    function verify() {
+    function verifyState() {
       indexState(IndexData, function(err, state) {
         if (err) throw err;
 
@@ -140,6 +151,17 @@ module.exports = {
           '%IndexData.number{3}': 'IndexData/c'
         });
 
+        verifyData();
+      });
+    }
+
+    function verifyData() {
+      IndexData.find({}).all(function(err, data) {
+        Assert.deepEqual(data, [
+          { id: 'a', letter: 'alpha', number: 1 },
+          { id: 'b', letter: 'beta', number: 2 },
+          { id: 'c', letter: 'gamma', number: 3 }
+        ]);
         done();
       });
     }
@@ -151,11 +173,11 @@ module.exports = {
       Assert.ok(alpha);
       alpha.attr({ letter: 'delta', number: 4 }).save(function(err) {
         if (err) throw err;
-        verify();
+        verifyState();
       });
     });
 
-    function verify() {
+    function verifyState() {
       indexState(IndexData, function(err, state) {
         if (err) throw err;
 
@@ -168,6 +190,17 @@ module.exports = {
           '%IndexData.number{3}': 'IndexData/c'
         });
 
+        verifyData();
+      });
+    }
+
+    function verifyData() {
+      IndexData.find({}).all(function(err, data) {
+        Assert.deepEqual(data, [
+          { id: 'a', letter: 'delta', number: 4 },
+          { id: 'b', letter: 'beta', number: 2 },
+          { id: 'c', letter: 'gamma', number: 3 }
+        ]);
         done();
       });
     }
@@ -176,10 +209,10 @@ module.exports = {
   'removing cleans up unique indicies': function(done) {
     IndexData.find({ letter: 'alpha' }).one(function(err, alpha) {
       if (err) throw err;
-      alpha.remove(verify);
+      alpha.remove(verifyState);
     });
 
-    function verify(err) {
+    function verifyState(err) {
       if (err) throw err;
 
       indexState(IndexData, function(err, state) {
@@ -192,6 +225,16 @@ module.exports = {
           '%IndexData.number{3}': 'IndexData/c'
         });
 
+        verifyData();
+      });
+    }
+
+    function verifyData() {
+      IndexData.find({}).all(function(err, data) {
+        Assert.deepEqual(data, [
+          { id: 'b', letter: 'beta', number: 2 },
+          { id: 'c', letter: 'gamma', number: 3 }
+        ]);
         done();
       });
     }

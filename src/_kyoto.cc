@@ -704,14 +704,14 @@ public:
 
       if (!main_operation()) {
 	result = db->error().code();
-	db->end_transaction();
+	db->end_transaction(false);
 	return 0;
       }
 
       if (!toIndex.empty()) {
 	if (!apply_index()) {
 	  result = db->error().code();
-	  db->end_transaction();
+	  db->end_transaction(false);
 	  return 0;
 	}
       }
@@ -719,7 +719,7 @@ public:
       if (!toRemove.empty()) {
 	if (!cleanup()) {
 	  result = db->error().code();
-	  db->end_transaction();
+	  db->end_transaction(false);
 	  return 0;
 	}
       }
