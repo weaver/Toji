@@ -82,7 +82,6 @@ module.exports = {
         Assert.ok(!valid);
         Assert.deepEqual(obj.errors, {
           'id': ['missing required value'],
-          'letter': ["expected non-null value"],
           'number': ["oops, it's already taken"]
         });
 
@@ -289,13 +288,13 @@ module.exports = {
       if (err) throw err;
 
       Assert.deepEqual(state, {
-        '#IndexTree.group{a}IndexTree/a': 'IndexTree/a',
-        '#IndexTree.group{a}IndexTree/b': 'IndexTree/b',
-        '#IndexTree.group{a}IndexTree/c': 'IndexTree/c',
-        '#IndexTree.group{a}IndexTree/d': 'IndexTree/d',
-        '#IndexTree.group{e}IndexTree/e': 'IndexTree/e',
-        '#IndexTree.group{e}IndexTree/f': 'IndexTree/f',
-        '#IndexTree.group{g}IndexTree/g': 'IndexTree/g'
+        '%IndexTree.group{a}IndexTree/a': 'IndexTree/a',
+        '%IndexTree.group{a}IndexTree/b': 'IndexTree/b',
+        '%IndexTree.group{a}IndexTree/c': 'IndexTree/c',
+        '%IndexTree.group{a}IndexTree/d': 'IndexTree/d',
+        '%IndexTree.group{e}IndexTree/e': 'IndexTree/e',
+        '%IndexTree.group{e}IndexTree/f': 'IndexTree/f',
+        '%IndexTree.group{g}IndexTree/g': 'IndexTree/g'
       });
 
       done();
@@ -326,13 +325,13 @@ module.exports = {
         if (err) throw err;
 
         Assert.deepEqual(state, {
-          '#IndexTree.group{a}IndexTree/a': 'IndexTree/a',
-          '#IndexTree.group{a}IndexTree/b': 'IndexTree/b',
-          '#IndexTree.group{a}IndexTree/c': 'IndexTree/c',
-          '#IndexTree.group{a}IndexTree/d': 'IndexTree/d',
-          '#IndexTree.group{e}IndexTree/e': 'IndexTree/e',
-          '#IndexTree.group{e}IndexTree/f': 'IndexTree/f',
-          '#IndexTree.group{e}IndexTree/g': 'IndexTree/g'
+          '%IndexTree.group{a}IndexTree/a': 'IndexTree/a',
+          '%IndexTree.group{a}IndexTree/b': 'IndexTree/b',
+          '%IndexTree.group{a}IndexTree/c': 'IndexTree/c',
+          '%IndexTree.group{a}IndexTree/d': 'IndexTree/d',
+          '%IndexTree.group{e}IndexTree/e': 'IndexTree/e',
+          '%IndexTree.group{e}IndexTree/f': 'IndexTree/f',
+          '%IndexTree.group{e}IndexTree/g': 'IndexTree/g'
         });
 
         verifyData();
