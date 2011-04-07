@@ -24,6 +24,12 @@ using namespace kyotocabinet;
 #define V8_TO_BOOL(obj)                                                 \
   (obj->ToBoolean() == v8::True())                                      \
 
+#define EQ_STRING_BUF(str, buf, bsiz)                                   \
+  (str.length() == bsiz && str.compare(0, bsiz, vbuf, bsiz) == 0)       \
+
+#define EQ_UTF8_BUF(utf, buf, bsiz)                                     \
+  ((size_t)utf.length() == bsiz && strncmp(*utf, buf, bsiz) == 0)       \
+
 #define DEFINE_FUNC(Name, Request)					\
   static Handle<Value> Name(const Arguments& args) {			\
     HandleScope scope;							\
@@ -595,7 +601,7 @@ public:
 
       // It's an error for an index entry to exist with any other
       // value than the value it's supposed to be.
-      if (probe != index.end() && probe->second.compare(vbuf) != 0) {
+      if (probe != index.end() && !EQ_STRING_BUF(probe->second, vbuf, vsiz)) {
 	errors.insert(MapItem(probe->first, std::string(vbuf, vsiz)));
       }
 
@@ -632,7 +638,7 @@ public:
     {
       // It's an error to remove an index entry when it doesn't
       // point to this object.
-      if ((size_t)key.length() != vsiz || strncmp(*key, vbuf, vsiz) != 0) {
+      if (!EQ_UTF8_BUF(key, vbuf, vsiz)) {
 	errors.insert(MapItem(std::string(kbuf, ksiz), std::string(vbuf, vsiz)));
 	return NOP;
       }

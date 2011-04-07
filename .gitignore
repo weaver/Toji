@@ -3,3 +3,4 @@ build
 .packages
 .#
 .#*
+node_modules
