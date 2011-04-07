@@ -36,12 +36,15 @@ module.exports = {
       ]);
 
       function makeTree(parent) {
-        var root, mid;
+        var r1, m1, r2;
         db.load(done, [
-          root = (new IndexTree({ id: 'a', value: 'top-level' })),
-          mid = new IndexTree({ id: 'b', value: 'mid-level', parent: root }),
-          new IndexTree({ id: 'c', value: 'mid-leaf', parent: root }),
-          new IndexTree({ id: 'd', value: 'leaf', parent: mid })
+          r1 = (new IndexTree({ id: 'a', value: 'top-level' })),
+          m1 = new IndexTree({ id: 'b', value: 'mid-level', parent: r1 }),
+          new IndexTree({ id: 'c', value: 'mid-leaf', parent: r1 }),
+          new IndexTree({ id: 'd', value: 'leaf', parent: m1 }),
+          r2 = new IndexTree({ id: 'e', value: 'top 2' }),
+          new IndexTree({ id: 'f', value: 'leaf 2', parent: r2 }),
+          new IndexTree({ id: 'g', value: 'top 3' })
         ]);
       }
     });
@@ -289,11 +292,65 @@ module.exports = {
         '#IndexTree.group{a}IndexTree/a': 'IndexTree/a',
         '#IndexTree.group{a}IndexTree/b': 'IndexTree/b',
         '#IndexTree.group{a}IndexTree/c': 'IndexTree/c',
-        '#IndexTree.group{a}IndexTree/d': 'IndexTree/d'
+        '#IndexTree.group{a}IndexTree/d': 'IndexTree/d',
+        '#IndexTree.group{e}IndexTree/e': 'IndexTree/e',
+        '#IndexTree.group{e}IndexTree/f': 'IndexTree/f',
+        '#IndexTree.group{g}IndexTree/g': 'IndexTree/g'
       });
 
       done();
     });
+  },
+
+  'plain indexes are synced on-update': function(done) {
+    var root;
+
+    IndexTree.find('e', function(err, obj) {
+      if (err) throw err;
+      root = obj;
+      move();
+    });
+
+    function move() {
+      IndexTree.find({ id: 'g' }).one(function(err, obj) {
+        if (err) throw err;
+        obj.group = obj.parent = root;
+        obj.save(verifyState);
+      });
+    }
+
+    function verifyState(err) {
+      if (err) throw err;
+
+      indexState(IndexTree, function(err, state) {
+        if (err) throw err;
+
+        Assert.deepEqual(state, {
+          '#IndexTree.group{a}IndexTree/a': 'IndexTree/a',
+          '#IndexTree.group{a}IndexTree/b': 'IndexTree/b',
+          '#IndexTree.group{a}IndexTree/c': 'IndexTree/c',
+          '#IndexTree.group{a}IndexTree/d': 'IndexTree/d',
+          '#IndexTree.group{e}IndexTree/e': 'IndexTree/e',
+          '#IndexTree.group{e}IndexTree/f': 'IndexTree/f',
+          '#IndexTree.group{e}IndexTree/g': 'IndexTree/g'
+        });
+
+        verifyData();
+      });
+    }
+
+    function verifyData() {
+      IndexTree.find({ group: root.id })
+        .all(function(err, group) {
+          if (err) throw err;
+          Assert.deepEqual(group, [
+            { id: 'e', group: null, parent: null, value: 'top 2' },
+            { id: 'f', group: 'e', parent:'e', value: 'leaf 2' },
+            { id: 'g', group: 'e', parent:'e', value: 'top 3' }
+          ]);
+          done();
+        });
+    }
   }
 };
 
